@@ -24,13 +24,69 @@ class MainWindow(QMainWindow):
         self.image_manager = ImageManager()
         self.replacer = ImageReplacer()
         
-        self.target_path = self.config_manager.get_target_path()
+        self.target_path = ""
         
         self.init_ui()
         self.load_images()
         
-        if not self.target_path:
+        # 启动时自动加载和验证路径
+        self.load_and_validate_target_path()
+    
+    def load_and_validate_target_path(self):
+        """加载并验证目标路径"""
+        # 先尝试加载上次保存的路径
+        saved_path = self.config_manager.get_target_path()
+        
+        if saved_path:
+            # 验证路径是否仍然有效
+            is_valid, error_msg = PathDetector.validate_target_path(saved_path)
+            
+            if is_valid:
+                # 路径有效,直接使用
+                self.target_path = saved_path
+                self.update_target_label()
+                self.show_status_message(f"已加载上次使用的路径: {os.path.basename(saved_path)}")
+                return
+            else:
+                # 路径无效,提示用户
+                reply = QMessageBox.question(
+                    self, 
+                    "路径已失效",
+                    f"上次保存的路径已失效:\n{saved_path}\n\n"
+                    f"失效原因: {error_msg}\n\n"
+                    "是否需要重新检测路径?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.Yes
+                )
+                
+                if reply == QMessageBox.StandardButton.Yes:
+                    self.detect_target_path()
+                    return
+        
+        # 没有保存的路径,尝试从历史记录中查找有效路径
+        history = self.config_manager.get_path_history()
+        for historical_path in history:
+            is_valid, _ = PathDetector.validate_target_path(historical_path)
+            if is_valid:
+                self.target_path = historical_path
+                self.config_manager.set_target_path(historical_path)
+                self.update_target_label()
+                self.show_status_message(f"已从历史记录恢复路径: {os.path.basename(historical_path)}")
+                return
+        
+        # 清理无效的历史记录
+        self.config_manager.clear_invalid_history()
+        
+        # 如果启用了自动检测,则自动检测
+        if self.config_manager.get_auto_detect_on_startup():
             self.detect_target_path()
+        else:
+            self.update_target_label()
+    
+    def show_status_message(self, message, duration=3000):
+        """在状态栏显示消息"""
+        if hasattr(self, 'statusBar'):
+            self.statusBar().showMessage(message, duration)
     
     def init_ui(self):
         central_widget = QWidget()
@@ -38,16 +94,33 @@ class MainWindow(QMainWindow):
         central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
         
+        # 添加状态栏
+        self.statusBar().showMessage("就绪")
+        
         # 顶部信息区域
         info_layout = QHBoxLayout()
         self.target_label = QLabel()
         self.target_label.setStyleSheet("font-weight: bold; padding: 10px;")
         self.target_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        
+        # 按钮布局
+        button_layout = QHBoxLayout()
+        
         self.detect_button = QPushButton("检测路径")
         self.detect_button.setMinimumHeight(30)
         self.detect_button.clicked.connect(self.detect_target_path)
+        self.detect_button.setToolTip("自动检测希沃白板启动图片路径")
+        
+        self.history_button = QPushButton("历史路径")
+        self.history_button.setMinimumHeight(30)
+        self.history_button.clicked.connect(self.show_path_history)
+        self.history_button.setToolTip("查看和选择历史路径")
+        
+        button_layout.addWidget(self.detect_button)
+        button_layout.addWidget(self.history_button)
+        
         info_layout.addWidget(self.target_label, 1)
-        info_layout.addWidget(self.detect_button)
+        info_layout.addLayout(button_layout)
         
         # 更新目标路径标签显示
         self.update_target_label()
@@ -101,6 +174,75 @@ class MainWindow(QMainWindow):
         layout.addLayout(bottom_layout)
         layout.addWidget(self.progress_bar)
     
+    def show_path_history(self):
+        """显示历史路径选择对话框"""
+        history = self.config_manager.get_path_history()
+        
+        if not history:
+            QMessageBox.information(
+                self, 
+                "无历史记录", 
+                "暂无历史路径记录。\n\n请点击'检测路径'按钮检测启动图片路径。"
+            )
+            return
+        
+        # 验证历史路径并标记有效性
+        items = []
+        valid_paths = []
+        for i, path in enumerate(history):
+            is_valid, error_msg = PathDetector.validate_target_path(path)
+            status = "✓ 有效" if is_valid else f"✗ 无效 ({error_msg})"
+            items.append(f"{i+1}. [{status}] {path}")
+            if is_valid:
+                valid_paths.append(path)
+        
+        if not valid_paths:
+            reply = QMessageBox.question(
+                self,
+                "所有历史路径均无效",
+                "历史记录中的所有路径都已失效。\n\n是否清理历史记录并重新检测?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                self.config_manager.clear_invalid_history()
+                self.detect_target_path()
+            return
+        
+        item, ok = QInputDialog.getItem(
+            self,
+            "选择历史路径",
+            f"共有 {len(history)} 条历史记录,其中 {len(valid_paths)} 条有效:\n\n"
+            "请选择要使用的路径:",
+            items,
+            0,
+            False
+        )
+        
+        if ok and item:
+            index = int(item.split('.')[0]) - 1
+            selected_path = history[index]
+            
+            # 验证选择的路径
+            is_valid, error_msg = PathDetector.validate_target_path(selected_path)
+            
+            if is_valid:
+                self.target_path = selected_path
+                self.config_manager.set_target_path(selected_path)
+                self.update_target_label()
+                QMessageBox.information(
+                    self,
+                    "路径已设置",
+                    f"已设置目标路径:\n{selected_path}"
+                )
+            else:
+                QMessageBox.warning(
+                    self,
+                    "路径无效",
+                    f"选择的路径已失效:\n{error_msg}\n\n请选择其他路径或重新检测。"
+                )
+    
     def load_images(self):
         """加载图片列表"""
         preset_images = self.image_manager.get_preset_images()
@@ -134,6 +276,7 @@ class MainWindow(QMainWindow):
         """检测目标路径"""
         self.progress_bar.setVisible(True)
         self.progress_bar.setRange(0, 0)  # 不确定进度
+        self.progress_bar.setFormat("正在检测路径...")
         
         paths = PathDetector.detect_all_paths()
         
@@ -142,7 +285,6 @@ class MainWindow(QMainWindow):
         if paths:
             # 如果检测到多个路径,让用户选择
             if len(paths) > 1:
-                from PyQt6.QtWidgets import QInputDialog
                 items = [f"{i+1}. {path}" for i, path in enumerate(paths)]
                 item, ok = QInputDialog.getItem(
                     self, 
@@ -164,7 +306,8 @@ class MainWindow(QMainWindow):
             self.update_target_label()
             QMessageBox.information(
                 self, "检测成功", 
-                f"已检测到启动图片路径:\n{self.target_path}"
+                f"已检测到启动图片路径:\n{self.target_path}\n\n"
+                f"路径已保存,下次启动将自动加载。"
             )
         else:
             # 未检测到路径,提示用户手动选择
@@ -180,6 +323,7 @@ class MainWindow(QMainWindow):
                     QMessageBox.information(
                         self, "设置成功",
                         f"已成功设置目标图片路径:\n{self.target_path}\n\n"
+                        "路径已保存,下次启动将自动加载。\n"
                         "现在您可以选择图片进行替换了。"
                     )
                 else:
@@ -192,18 +336,25 @@ class MainWindow(QMainWindow):
                     self.update_target_label()
             else:
                 # 用户取消选择
-                self.config_manager.set_target_path("")
                 self.update_target_label()
-
     
     def update_target_label(self):
         """更新目标路径标签"""
         if self.target_path:
-            self.target_label.setText(f"当前启动图片路径: {self.target_path}")
+            # 只显示文件名和上级目录,避免路径过长
+            path_parts = self.target_path.split(os.sep)
+            if len(path_parts) > 3:
+                short_path = "..." + os.sep + os.sep.join(path_parts[-3:])
+            else:
+                short_path = self.target_path
+            
+            self.target_label.setText(f"当前启动图片路径: {short_path}")
             self.target_label.setStyleSheet("font-weight: bold; padding: 10px; color: green;")
+            self.target_label.setToolTip(f"完整路径:\n{self.target_path}")
         else:
             self.target_label.setText("未检测到启动图片路径 (点击右侧按钮进行检测)")
             self.target_label.setStyleSheet("font-weight: bold; padding: 10px; color: red;")
+            self.target_label.setToolTip("请点击'检测路径'或'历史路径'按钮")
     
     def on_image_selected(self):
         """当图片被选中时"""
@@ -285,7 +436,7 @@ class MainWindow(QMainWindow):
         
         reply = QMessageBox.question(
             self, "删除图片",
-            f"确定要删除图片 '{image_info['display_name']}' 吗？\n\n此操作不可恢复！",
+            f"确定要删除图片 '{image_info['display_name']}' 吗?\n\n此操作不可恢复!",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
@@ -297,7 +448,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.information(self, "删除成功", "图片已删除")
                 self.load_images()
             else:
-                QMessageBox.warning(self, "删除失败", "无法删除图片，请检查文件权限")
+                QMessageBox.warning(self, "删除失败", "无法删除图片,请检查文件权限")
     
     def replace_startup_image(self):
         """替换启动图片"""
@@ -318,7 +469,7 @@ class MainWindow(QMainWindow):
         # 确认对话框
         reply = QMessageBox.question(
             self, "确认替换",
-            f"确定要将启动图片替换为:\n'{image_info['display_name']}' 吗？\n\n原始图片将自动备份。",
+            f"确定要将启动图片替换为:\n'{image_info['display_name']}' 吗?\n\n原始图片将自动备份。",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
@@ -351,7 +502,7 @@ class MainWindow(QMainWindow):
         # 确认对话框
         reply = QMessageBox.question(
             self, "确认还原",
-            "确定要从备份还原启动图片吗？\n\n当前的启动图片将被覆盖。",
+            "确定要从备份还原启动图片吗?\n\n当前的启动图片将被覆盖。",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
