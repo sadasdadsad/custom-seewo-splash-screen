@@ -37,7 +37,7 @@ class MainWindow(FluentWindow):  # 改为继承 FluentWindow
         self.resize(900, 650)  # 使用 resize 替代 setMinimumSize
         
         # 设置主题 (可选)
-        # setTheme(Theme.AUTO)  # 自动跟随系统, 或使用 Theme.LIGHT/Theme.DARK
+        setTheme(Theme.AUTO)  # 自动跟随系统, 或使用 Theme.LIGHT/Theme.DARK
         
         self.config_manager = ConfigManager()
         self.image_manager = ImageManager()
@@ -149,7 +149,7 @@ class MainWindow(FluentWindow):  # 改为继承 FluentWindow
         self.progress_bar.setVisible(True)
         self.progress_bar.setRange(0, 0)  # 不确定进度
         # Fluent ProgressBar 会自动显示动画
-        self.show_status_message(message, 10000)
+        self.show_status_message(message, 2000)
 
     def hide_progress(self):
         """隐藏进度"""
@@ -487,16 +487,6 @@ class MainWindow(FluentWindow):  # 改为继承 FluentWindow
             self.show_warning_message("无法删除", "只能删除自定义图片")
             return
         
-        # 注释掉二次确认
-        # reply = QMessageBox.question(
-        #     self, "删除图片",
-        #     f"确定要删除图片 '{image_info['display_name']}' 吗?\n\n此操作不可恢复!",
-        #     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        #     QMessageBox.StandardButton.No
-        # )
-        # 
-        # if reply == QMessageBox.StandardButton.Yes:
-        
         # 直接删除
         success = self.image_manager.delete_custom_image(image_info["filename"])
         if success:
@@ -521,17 +511,6 @@ class MainWindow(FluentWindow):  # 改为继承 FluentWindow
         
         image_info = selected_items[0].data(Qt.ItemDataRole.UserRole)
         
-        # 注释掉二次确认
-        # reply = QMessageBox.question(
-        #     self, "确认替换",
-        #     f"确定要将启动图片替换为:\n'{image_info['display_name']}' 吗?\n\n原始图片将自动备份。",
-        #     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        #     QMessageBox.StandardButton.No
-        # )
-        # 
-        # if reply == QMessageBox.StandardButton.No:
-        #     return
-        
         self.show_progress("正在替换...")
         
         success, msg = self.replacer.replace_image(image_info["path"], self.target_path)
@@ -548,17 +527,6 @@ class MainWindow(FluentWindow):  # 改为继承 FluentWindow
         if not self.target_path:
             self.show_warning_message("未检测到路径", "请先点击'检测路径'按钮")
             return
-        
-        # 注释掉二次确认
-        # reply = QMessageBox.question(
-        #     self, "确认还原",
-        #     "确定要从备份还原启动图片吗?\n\n当前的启动图片将被覆盖。",
-        #     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        #     QMessageBox.StandardButton.No
-        # )
-        # 
-        # if reply == QMessageBox.StandardButton.No:
-        #     return
         
         self.show_progress("正在还原...")
         
