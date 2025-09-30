@@ -231,11 +231,8 @@ class MainWindow(QMainWindow):
                 self.target_path = selected_path
                 self.config_manager.set_target_path(selected_path)
                 self.update_target_label()
-                QMessageBox.information(
-                    self,
-                    "路径已设置",
-                    f"已设置目标路径:\n{selected_path}"
-                )
+                # 改为状态栏提示
+                self.show_status_message(f"已设置目标路径: {os.path.basename(selected_path)}", 5000)
             else:
                 QMessageBox.warning(
                     self,
@@ -304,11 +301,8 @@ class MainWindow(QMainWindow):
             
             self.config_manager.set_target_path(self.target_path)
             self.update_target_label()
-            QMessageBox.information(
-                self, "检测成功", 
-                f"已检测到启动图片路径:\n{self.target_path}\n\n"
-                f"路径已保存,下次启动将自动加载。"
-            )
+            # 改为状态栏提示
+            self.show_status_message(f"检测成功: {os.path.basename(self.target_path)}", 5000)
         else:
             # 未检测到路径,提示用户手动选择
             self.target_path = PathDetector.manual_select_target_image(self)
@@ -320,12 +314,8 @@ class MainWindow(QMainWindow):
                 if is_valid:
                     self.config_manager.set_target_path(self.target_path)
                     self.update_target_label()
-                    QMessageBox.information(
-                        self, "设置成功",
-                        f"已成功设置目标图片路径:\n{self.target_path}\n\n"
-                        "路径已保存,下次启动将自动加载。\n"
-                        "现在您可以选择图片进行替换了。"
-                    )
+                    # 改为状态栏提示
+                    self.show_status_message(f"路径设置成功: {os.path.basename(self.target_path)}", 5000)
                 else:
                     QMessageBox.warning(
                         self, "路径无效",
@@ -381,15 +371,18 @@ class MainWindow(QMainWindow):
                 
                 self.progress_bar.setVisible(True)
                 self.progress_bar.setRange(0, 0)
+                self.progress_bar.setFormat("正在导入...")
                 
                 success, msg = self.image_manager.import_image(source_path)
                 
                 self.progress_bar.setVisible(False)
                 
                 if success:
-                    QMessageBox.information(self, "导入成功", f"图片已导入到自定义目录:\n{msg}")
+                    # 改为状态栏提示
+                    self.show_status_message(f"图片导入成功: {os.path.basename(source_path)}", 5000)
                     self.load_images()
                 else:
+                    # 失败保留弹窗
                     QMessageBox.warning(self, "导入失败", msg)
     
     def rename_image(self):
@@ -416,9 +409,11 @@ class MainWindow(QMainWindow):
             success, msg = self.image_manager.rename_custom_image(image_info["filename"], new_name)
             if success:
                 self.config_manager.update_custom_image_name(image_info["filename"], new_name)
-                QMessageBox.information(self, "重命名成功", f"已重命名为: {new_name}")
+                # 改为状态栏提示
+                self.show_status_message(f"已重命名为: {new_name}", 3000)
                 self.load_images()
             else:
+                # 失败保留弹窗
                 QMessageBox.warning(self, "重命名失败", msg)
     
     def delete_image(self):
@@ -434,21 +429,26 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "无法删除", "只能删除自定义图片")
             return
         
-        reply = QMessageBox.question(
-            self, "删除图片",
-            f"确定要删除图片 '{image_info['display_name']}' 吗?\n\n此操作不可恢复!",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
-        )
+        # 注释掉二次确认
+        # reply = QMessageBox.question(
+        #     self, "删除图片",
+        #     f"确定要删除图片 '{image_info['display_name']}' 吗?\n\n此操作不可恢复!",
+        #     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        #     QMessageBox.StandardButton.No
+        # )
+        # 
+        # if reply == QMessageBox.StandardButton.Yes:
         
-        if reply == QMessageBox.StandardButton.Yes:
-            success = self.image_manager.delete_custom_image(image_info["filename"])
-            if success:
-                self.config_manager.remove_custom_image(image_info["filename"])
-                QMessageBox.information(self, "删除成功", "图片已删除")
-                self.load_images()
-            else:
-                QMessageBox.warning(self, "删除失败", "无法删除图片,请检查文件权限")
+        # 直接删除
+        success = self.image_manager.delete_custom_image(image_info["filename"])
+        if success:
+            self.config_manager.remove_custom_image(image_info["filename"])
+            # 改为状态栏提示
+            self.show_status_message(f"已删除图片: {image_info['display_name']}", 3000)
+            self.load_images()
+        else:
+            # 失败保留弹窗
+            QMessageBox.warning(self, "删除失败", "无法删除图片,请检查文件权限")
     
     def replace_startup_image(self):
         """替换启动图片"""
@@ -466,16 +466,16 @@ class MainWindow(QMainWindow):
         
         image_info = selected_items[0].data(Qt.ItemDataRole.UserRole)
         
-        # 确认对话框
-        reply = QMessageBox.question(
-            self, "确认替换",
-            f"确定要将启动图片替换为:\n'{image_info['display_name']}' 吗?\n\n原始图片将自动备份。",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
-        )
-        
-        if reply == QMessageBox.StandardButton.No:
-            return
+        # 注释掉二次确认
+        # reply = QMessageBox.question(
+        #     self, "确认替换",
+        #     f"确定要将启动图片替换为:\n'{image_info['display_name']}' 吗?\n\n原始图片将自动备份。",
+        #     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        #     QMessageBox.StandardButton.No
+        # )
+        # 
+        # if reply == QMessageBox.StandardButton.No:
+        #     return
         
         self.progress_bar.setVisible(True)
         self.progress_bar.setRange(0, 0)
@@ -486,8 +486,10 @@ class MainWindow(QMainWindow):
         self.progress_bar.setVisible(False)
         
         if success:
-            QMessageBox.information(self, "替换成功", msg)
+            # 改为状态栏提示
+            self.show_status_message(f"启动图片已替换为: {image_info['display_name']}", 5000)
         else:
+            # 失败保留弹窗
             QMessageBox.critical(self, "替换失败", msg)
     
     def restore_from_backup(self):
@@ -499,16 +501,16 @@ class MainWindow(QMainWindow):
             )
             return
         
-        # 确认对话框
-        reply = QMessageBox.question(
-            self, "确认还原",
-            "确定要从备份还原启动图片吗?\n\n当前的启动图片将被覆盖。",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
-        )
-        
-        if reply == QMessageBox.StandardButton.No:
-            return
+        # 注释掉二次确认
+        # reply = QMessageBox.question(
+        #     self, "确认还原",
+        #     "确定要从备份还原启动图片吗?\n\n当前的启动图片将被覆盖。",
+        #     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        #     QMessageBox.StandardButton.No
+        # )
+        # 
+        # if reply == QMessageBox.StandardButton.No:
+        #     return
         
         self.progress_bar.setVisible(True)
         self.progress_bar.setRange(0, 0)
@@ -519,6 +521,8 @@ class MainWindow(QMainWindow):
         self.progress_bar.setVisible(False)
         
         if success:
-            QMessageBox.information(self, "还原成功", msg)
+            # 改为状态栏提示
+            self.show_status_message("已从备份还原启动图片", 5000)
         else:
+            # 失败保留弹窗
             QMessageBox.critical(self, "还原失败", msg)
