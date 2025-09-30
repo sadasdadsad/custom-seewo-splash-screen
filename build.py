@@ -12,7 +12,7 @@ class Builder:
         self.root_dir = Path(__file__).parent
         self.dist_dir = self.root_dir / "dist"
         self.build_dir = self.root_dir / "build"
-        self.app_name = "希沃白板启动图修改器"
+        self.app_name = "SeewoSplash"
         self.main_script = "main.py"
         
     def clean(self):
@@ -97,7 +97,7 @@ class Builder:
             for img in image_files:
                 print(f"    - {img.name}")
         else:
-            print(f"⚠ 未找到预设图片���录: {presets_dir}")
+            print(f"⚠ 未找到预设图片目录: {presets_dir}")
         
         # 不打包 images/custom 目录（用户自定义图片目录，运行时创建）
         custom_dir = self.root_dir / "images" / "custom"
@@ -188,30 +188,30 @@ class Builder:
             print(f"✓ 创建目录: {dir_path.relative_to(self.dist_dir)}")
         
         # 复制 README
-        readme_src = self.root_dir / "README.md"
-        if readme_src.exists():
-            readme_dst = exe_dir / "使用说明.txt"
-            shutil.copy2(readme_src, readme_dst)
-            print(f"✓ 复制使用说明: {readme_dst.relative_to(self.dist_dir)}")
+        # readme_src = self.root_dir / "README.md"
+        # if readme_src.exists():
+        #     readme_dst = exe_dir / "使用说明.txt"
+        #     shutil.copy2(readme_src, readme_dst)
+        #     print(f"✓ 复制使用说明: {readme_dst.relative_to(self.dist_dir)}")
         
         # 创建一个启动说明文件
-        startup_guide = exe_dir / "运行说明.txt"
-        with open(startup_guide, "w", encoding="utf-8") as f:
-            f.write(f"希沃白板启动图修改器\n")
-            f.write("=" * 50 + "\n\n")
-            f.write(f"运行程序：双击 {self.app_name}.exe\n\n")
-            f.write("目录说明：\n")
-            f.write("  - _internal/assets/presets/  预设图片目录（只读）\n")
-            f.write("  - images/custom/             自定义图片目录（可��）\n")
-            f.write("  - backup/                    备份目录（可写）\n")
-            f.write("  - config.json                配置文件（自动生成）\n\n")
-            f.write("注意事项：\n")
-            f.write("  1. 不要删除或移动 _internal 目录\n")
-            f.write("  2. 首次运行需要检测启动图片路径\n")
-            f.write("  3. 需要管理员权限才能替换系统文件\n")
-            f.write("  4. 可以将自己的图片放到 images/custom/ 目录\n")
+        # startup_guide = exe_dir / "运行说明.txt"
+        # with open(startup_guide, "w", encoding="utf-8") as f:
+        #     f.write(f"希沃白板启动图修改器\n")
+        #     f.write("=" * 50 + "\n\n")
+        #     f.write(f"运行程序：双击 {self.app_name}.exe\n\n")
+        #     f.write("目录说明：\n")
+        #     f.write("  - _internal/assets/presets/  预设图片目录（只读）\n")
+        #     f.write("  - images/custom/             自定义图片目录（可��）\n")
+        #     f.write("  - backup/                    备份目录（可写）\n")
+        #     f.write("  - config.json                配置文件（自动生成）\n\n")
+        #     f.write("注意事项：\n")
+        #     f.write("  1. 不要删除或移动 _internal 目录\n")
+        #     f.write("  2. 首次运行需要检测启动图片路径\n")
+        #     f.write("  3. 需要管理员权限才能替换系统文件\n")
+        #     f.write("  4. 可以将自己的图片放到 images/custom/ 目录\n")
         
-        print(f"✓ 创建运行说明: {startup_guide.relative_to(self.dist_dir)}")
+        # print(f"✓ 创建运行说明: {startup_guide.relative_to(self.dist_dir)}")
         
         # 验证预设图片是否正确复制
         preset_dir = exe_dir / "_internal" / "assets" / "presets"
@@ -254,7 +254,7 @@ class Builder:
             print(f"│   └── custom/                   # 自定义图片（可写）")
             print(f"├── backup/                       # 备份目录（可写）")
             print(f"├── config.json                   # 配置文件（运行后生成）")
-            print(f"└── 运行说明.txt                  # 使用说明")
+            # print(f"└── 运行说明.txt                  # 使用说明")
             
             print(f"\n分发说明:")
             print(f"  将整个 '{self.app_name}' 目录打包分发给用户")
@@ -289,7 +289,7 @@ class Builder:
                 print(f"  大小: {size_mb:.2f} MB")
             
         except Exception as e:
-            print(f"⚠ 创建压���包失败: {e}")
+            print(f"⚠ 创建压缩包失败: {e}")
     
     def run(self):
         """运行完整构建流程"""

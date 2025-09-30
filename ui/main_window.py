@@ -16,8 +16,8 @@ from utils.path_detector import PathDetector
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("希沃白板启动图片修改器")
-        # self.setWindowIcon(QIcon("assets/icon.png"))  # 如果没有图标文件可以先注释掉
+        self.setWindowTitle("SeewoSplash")
+        self.setWindowIcon(QIcon("assets/icon.ico"))  # 如果没有图标文件可以先注释掉
         self.setMinimumSize(800, 600)
         
         self.config_manager = ConfigManager()
