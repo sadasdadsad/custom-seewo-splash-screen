@@ -1,7 +1,7 @@
-import os
+# import os
 from PyQt6.QtWidgets import QMessageBox, QInputDialog
 from utils.path_detector import PathDetector
-from .message_helper import MessageHelper
+# from .message_helper import MessageHelper
 
 
 class PathHistoryDialog:

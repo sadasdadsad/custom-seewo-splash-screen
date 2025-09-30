@@ -1,7 +1,7 @@
 import os
 from PyQt6.QtWidgets import QVBoxLayout, QWidget, QFileDialog, QInputDialog, QMessageBox
 from PyQt6.QtGui import QIcon
-from PyQt6.QtCore import Qt
+# from PyQt6.QtCore import Qt
 from qfluentwidgets import FluentWindow, FluentIcon as FIF, ProgressBar, Theme, setTheme
 
 from core.config_manager import ConfigManager

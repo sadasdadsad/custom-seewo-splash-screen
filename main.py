@@ -1,8 +1,8 @@
 import sys
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import Qt
+# from PyQt6.QtCore import Qt
 from ui.main_window import MainWindow
-from utils.admin_helper import is_admin
+# from utils.admin_helper import is_admin
 
 
 def main():
@@ -14,12 +14,12 @@ def main():
     # app.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     
     # 设置应用程序信息
-    app.setApplicationName("希沃白板启动图片修改器")
-    app.setOrganizationName("CustomSeewoSplash")
-    app.setApplicationVersion("1.0.0")
+    # app.setApplicationName("希沃白板启动图片修改器")
+    # app.setOrganizationName("CustomSeewoSplash")
+    # app.setApplicationVersion("1.0.0")
     
     # 设置应用程序样式（可选）
-    app.setStyle("Fusion")
+    # app.setStyle("Fusion")
     
     # 创建并显示主窗口
     window = MainWindow()

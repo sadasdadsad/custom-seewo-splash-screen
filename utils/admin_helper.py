@@ -1,6 +1,6 @@
 import ctypes
 import sys
-import os
+# import os
 
 
 def is_admin():
