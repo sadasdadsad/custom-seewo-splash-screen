@@ -11,14 +11,33 @@ from core.image_manager import ImageManager
 from core.replacer import ImageReplacer
 from utils.admin_helper import is_admin, run_as_admin
 from utils.path_detector import PathDetector
+from qfluentwidgets import (
+    # 窗口和布局
+    FluentWindow, 
+    # 按钮
+    PrimaryPushButton, PushButton, TransparentToolButton,
+    # 列表和卡片
+    ListWidget, CardWidget, ImageLabel,
+    # 信息提示
+    InfoBar, InfoBarPosition,
+    # 进度条
+    IndeterminateProgressRing, ProgressBar,
+    # 图标
+    FluentIcon as FIF,
+    # 其他
+    BodyLabel, TitleLabel, StrongBodyLabel
+)
+from qfluentwidgets import Theme, setTheme
 
-
-class MainWindow(QMainWindow):
+class MainWindow(FluentWindow):  # 改为继承 FluentWindow
     def __init__(self):
         super().__init__()
         self.setWindowTitle("SeewoSplash")
-        self.setWindowIcon(QIcon("assets/icon.ico"))  # 如果没有图标文件可以先注释掉
-        self.setMinimumSize(800, 600)
+        self.setWindowIcon(QIcon("assets/icon.ico"))
+        self.resize(900, 650)  # 使用 resize 替代 setMinimumSize
+        
+        # 设置主题 (可选)
+        # setTheme(Theme.AUTO)  # 自动跟随系统, 或使用 Theme.LIGHT/Theme.DARK
         
         self.config_manager = ConfigManager()
         self.image_manager = ImageManager()
@@ -26,11 +45,17 @@ class MainWindow(QMainWindow):
         
         self.target_path = ""
         
+        # 创建主界面
+        self.homeInterface = QWidget()
+        self.homeInterface.setObjectName("homeInterface")
+        self.addSubInterface(self.homeInterface, FIF.HOME, '主页')
+        
         self.init_ui()
         self.load_images()
         
         # 启动时自动加载和验证路径
         self.load_and_validate_target_path()
+
     
     def load_and_validate_target_path(self):
         """加载并验证目标路径"""
@@ -84,95 +109,135 @@ class MainWindow(QMainWindow):
             self.update_target_label()
     
     def show_status_message(self, message, duration=3000):
-        """在状态栏显示消息"""
-        if hasattr(self, 'statusBar'):
-            self.statusBar().showMessage(message, duration)
+        """使用 InfoBar 显示消息"""
+        InfoBar.success(
+            title="",
+            content=message,
+            orient=Qt.Orientation.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP,
+            duration=duration,
+            parent=self
+        )
+
+    def show_error_message(self, title, message):
+        """显示错误消息"""
+        InfoBar.error(
+            title=title,
+            content=message,
+            orient=Qt.Orientation.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP,
+            duration=5000,
+            parent=self
+        )
+
+    def show_warning_message(self, title, message):
+        """显示警告消息"""
+        InfoBar.warning(
+            title=title,
+            content=message,
+            orient=Qt.Orientation.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP,
+            duration=4000,
+            parent=self
+        )
+
+    def show_progress(self, message):
+        """显示进度"""
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setRange(0, 0)  # 不确定进度
+        # Fluent ProgressBar 会自动显示动画
+        self.show_status_message(message, 10000)
+
+    def hide_progress(self):
+        """隐藏进度"""
+        self.progress_bar.setVisible(False)
     
     def init_ui(self):
-        central_widget = QWidget()
-        layout = QVBoxLayout()
-        central_widget.setLayout(layout)
-        self.setCentralWidget(central_widget)
+        # 使用 homeInterface 作为容器
+        layout = QVBoxLayout(self.homeInterface)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
         
-        # 添加状态栏
-        self.statusBar().showMessage("就绪")
+        # 顶部信息卡片
+        info_card = CardWidget(self.homeInterface)
+        info_card.setFixedHeight(80)
+        info_card_layout = QHBoxLayout(info_card)
         
-        # 顶部信息区域
-        info_layout = QHBoxLayout()
-        self.target_label = QLabel()
-        self.target_label.setStyleSheet("font-weight: bold; padding: 10px;")
-        self.target_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        # 使用 Fluent 样式标签
+        self.target_label = StrongBodyLabel()
+        self.target_label.setWordWrap(True)
         
         # 按钮布局
         button_layout = QHBoxLayout()
         
-        self.detect_button = QPushButton("检测路径")
-        self.detect_button.setMinimumHeight(30)
+        # 使用 Fluent 按钮 (带图标)
+        self.detect_button = PushButton(FIF.SEARCH, "检测路径")
         self.detect_button.clicked.connect(self.detect_target_path)
         self.detect_button.setToolTip("自动检测希沃白板启动图片路径")
         
-        self.history_button = QPushButton("历史路径")
-        self.history_button.setMinimumHeight(30)
+        self.history_button = PushButton(FIF.HISTORY, "历史路径")
         self.history_button.clicked.connect(self.show_path_history)
         self.history_button.setToolTip("查看和选择历史路径")
         
         button_layout.addWidget(self.detect_button)
         button_layout.addWidget(self.history_button)
         
-        info_layout.addWidget(self.target_label, 1)
-        info_layout.addLayout(button_layout)
+        info_card_layout.addWidget(self.target_label, 1)
+        info_card_layout.addLayout(button_layout)
         
         # 更新目标路径标签显示
         self.update_target_label()
         
-        # 中间图片列表区域
-        self.image_list = QListWidget()
+        # 图片列表 - 使用 Fluent ListWidget
+        self.image_list = ListWidget(self.homeInterface)
         self.image_list.setIconSize(QSize(128, 128))
-        self.image_list.setSpacing(5)
-        self.image_list.setViewMode(QListWidget.ViewMode.IconMode)
-        self.image_list.setResizeMode(QListWidget.ResizeMode.Adjust)
-        self.image_list.setMovement(QListWidget.Movement.Static)
+        self.image_list.setSpacing(10)
+        self.image_list.setViewMode(ListWidget.ViewMode.IconMode)
+        self.image_list.setResizeMode(ListWidget.ResizeMode.Adjust)
+        self.image_list.setMovement(ListWidget.Movement.Static)
         self.image_list.itemSelectionChanged.connect(self.on_image_selected)
         
-        # 底部操作区域
+        # 底部操作按钮
         bottom_layout = QHBoxLayout()
-        self.import_button = QPushButton("导入图片")
-        self.import_button.setMinimumHeight(35)
+        bottom_layout.setSpacing(10)
+        
+        # 使用 Fluent 按钮
+        self.import_button = PushButton(FIF.ADD, "导入图片")
         self.import_button.clicked.connect(self.import_image)
         
-        self.rename_button = QPushButton("重命名")
-        self.rename_button.setMinimumHeight(35)
+        self.rename_button = PushButton(FIF.EDIT, "重命名")
         self.rename_button.clicked.connect(self.rename_image)
         
-        self.delete_button = QPushButton("删除")
-        self.delete_button.setMinimumHeight(35)
+        self.delete_button= PushButton(FIF.DELETE, "删除")
         self.delete_button.clicked.connect(self.delete_image)
         
-        self.replace_button = QPushButton("替换启动图片")
-        self.replace_button.setMinimumHeight(35)
-        self.replace_button.setStyleSheet("background-color: #0078D4; color: white; font-weight: bold;")
+        # 主要操作按钮使用 PrimaryPushButton
+        self.replace_button = PrimaryPushButton(FIF.UPDATE, "替换启动图片")
         self.replace_button.clicked.connect(self.replace_startup_image)
         
-        self.restore_button = QPushButton("从备份还原")
-        self.restore_button.setMinimumHeight(35)
+        self.restore_button = PushButton(FIF.SYNC, "从备份还原")
         self.restore_button.clicked.connect(self.restore_from_backup)
         
         bottom_layout.addWidget(self.import_button)
         bottom_layout.addWidget(self.rename_button)
         bottom_layout.addWidget(self.delete_button)
-        bottom_layout.addWidget(self.replace_button)
+        bottom_layout.addStretch(1)
         bottom_layout.addWidget(self.restore_button)
+        bottom_layout.addWidget(self.replace_button)
         
-        # 进度条 - 使用PyQt6原生的QProgressBar
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setTextVisible(True)
-        self.progress_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # 进度条 - 使用 Fluent ProgressBar
+        self.progress_bar = ProgressBar(self.homeInterface)
         self.progress_bar.setVisible(False)
         
-        layout.addLayout(info_layout)
-        layout.addWidget(self.image_list)
+        # 添加到主布局
+        layout.addWidget(info_card)
+        layout.addWidget(self.image_list, 1)
         layout.addLayout(bottom_layout)
         layout.addWidget(self.progress_bar)
+
     
     def show_path_history(self):
         """显示历史路径选择对话框"""
@@ -271,13 +336,11 @@ class MainWindow(QMainWindow):
     
     def detect_target_path(self):
         """检测目标路径"""
-        self.progress_bar.setVisible(True)
-        self.progress_bar.setRange(0, 0)  # 不确定进度
-        self.progress_bar.setFormat("正在检测路径...")
+        self.show_progress("正在检测路径...")
         
         paths = PathDetector.detect_all_paths()
         
-        self.progress_bar.setVisible(False)
+        self.hide_progress()
         
         if paths:
             # 如果检测到多个路径,让用户选择
@@ -331,19 +394,16 @@ class MainWindow(QMainWindow):
     def update_target_label(self):
         """更新目标路径标签"""
         if self.target_path:
-            # 只显示文件名和上级目录,避免路径过长
             path_parts = self.target_path.split(os.sep)
             if len(path_parts) > 3:
                 short_path = "..." + os.sep + os.sep.join(path_parts[-3:])
             else:
                 short_path = self.target_path
             
-            self.target_label.setText(f"当前启动图片路径: {short_path}")
-            self.target_label.setStyleSheet("font-weight: bold; padding: 10px; color: green;")
+            self.target_label.setText(f"✓ 当前路径: {short_path}")
             self.target_label.setToolTip(f"完整路径:\n{self.target_path}")
         else:
-            self.target_label.setText("未检测到启动图片路径 (点击右侧按钮进行检测)")
-            self.target_label.setStyleSheet("font-weight: bold; padding: 10px; color: red;")
+            self.target_label.setText("⚠ 未检测到启动图片路径 (点击右侧按钮进行检测)")
             self.target_label.setToolTip("请点击'检测路径'或'历史路径'按钮")
     
     def on_image_selected(self):
@@ -369,33 +429,31 @@ class MainWindow(QMainWindow):
             if selected_files:
                 source_path = selected_files[0]
                 
-                self.progress_bar.setVisible(True)
-                self.progress_bar.setRange(0, 0)
-                self.progress_bar.setFormat("正在导入...")
+                self.show_progress("正在导入...")
                 
                 success, msg = self.image_manager.import_image(source_path)
                 
-                self.progress_bar.setVisible(False)
+                self.hide_progress()
                 
                 if success:
                     # 改为状态栏提示
-                    self.show_status_message(f"图片导入成功: {os.path.basename(source_path)}", 5000)
+                    self.show_status_message(f"图片导入成功: {os.path.basename(source_path)}", 3000)
                     self.load_images()
                 else:
                     # 失败保留弹窗
-                    QMessageBox.warning(self, "导入失败", msg)
+                    self.show_error_message("导入失败", msg)
     
     def rename_image(self):
         """重命名图片"""
         selected_items = self.image_list.selectedItems()
         if not selected_items:
-            QMessageBox.warning(self, "未选择图片", "请先选择要重命名的图片")
+            self.show_warning_message("未选择图片", "请先选择要重命名的图片")
             return
         
         image_info = selected_items[0].data(Qt.ItemDataRole.UserRole)
         
         if image_info["type"] != "custom":
-            QMessageBox.warning(self, "无法重命名", "只能重命名自定义图片")
+            self.show_warning_message("无法重命名", "只能重命名自定义图片")
             return
         
         new_name, ok = QInputDialog.getText(
@@ -410,23 +468,23 @@ class MainWindow(QMainWindow):
             if success:
                 self.config_manager.update_custom_image_name(image_info["filename"], new_name)
                 # 改为状态栏提示
-                self.show_status_message(f"已重命名为: {new_name}", 3000)
+                self.show_status_message(f"已重命名为: {new_name}", 2000)
                 self.load_images()
             else:
                 # 失败保留弹窗
-                QMessageBox.warning(self, "重命名失败", msg)
+                self.show_error_message("重命名失败", msg)
     
     def delete_image(self):
         """删除图片"""
         selected_items = self.image_list.selectedItems()
         if not selected_items:
-            QMessageBox.warning(self, "未选择图片", "请先选择要删除的图片")
+            self.show_warning_message("未选择图片", "请先选择要删除的图片")
             return
         
         image_info = selected_items[0].data(Qt.ItemDataRole.UserRole)
         
         if image_info["type"] != "custom":
-            QMessageBox.warning(self, "无法删除", "只能删除自定义图片")
+            self.show_warning_message("无法删除", "只能删除自定义图片")
             return
         
         # 注释掉二次确认
@@ -444,24 +502,21 @@ class MainWindow(QMainWindow):
         if success:
             self.config_manager.remove_custom_image(image_info["filename"])
             # 改为状态栏提示
-            self.show_status_message(f"已删除图片: {image_info['display_name']}", 3000)
+            self.show_status_message(f"已删除图片: {image_info['display_name']}", 2000)
             self.load_images()
         else:
             # 失败保留弹窗
-            QMessageBox.warning(self, "删除失败", "无法删除图片,请检查文件权限")
+            self.show_error_message("删除失败", "无法删除图片,请检查文件权限")
     
     def replace_startup_image(self):
         """替换启动图片"""
         if not self.target_path:
-            QMessageBox.warning(
-                self, "未检测到启动图片路径", 
-                "请先点击'检测路径'按钮检测启动图片路径"
-            )
+            self.show_warning_message("未检测到路径", "请先点击'检测路径'按钮")
             return
         
         selected_items = self.image_list.selectedItems()
         if not selected_items:
-            QMessageBox.warning(self, "未选择图片", "请先从列表中选择要替换的图片")
+            self.show_warning_message("未选择图片", "请先从列表中选择要替换的图片")
             return
         
         image_info = selected_items[0].data(Qt.ItemDataRole.UserRole)
@@ -477,28 +532,21 @@ class MainWindow(QMainWindow):
         # if reply == QMessageBox.StandardButton.No:
         #     return
         
-        self.progress_bar.setVisible(True)
-        self.progress_bar.setRange(0, 0)
-        self.progress_bar.setFormat("正在替换...")
+        self.show_progress("正在替换...")
         
         success, msg = self.replacer.replace_image(image_info["path"], self.target_path)
         
-        self.progress_bar.setVisible(False)
+        self.hide_progress()
         
         if success:
-            # 改为状态栏提示
-            self.show_status_message(f"启动图片已替换为: {image_info['display_name']}", 5000)
+            self.show_status_message(f"启动图片已替换为: {image_info['display_name']}", 3000)
         else:
-            # 失败保留弹窗
-            QMessageBox.critical(self, "替换失败", msg)
+            self.show_error_message("替换失败", msg)
     
     def restore_from_backup(self):
         """从备份还原"""
         if not self.target_path:
-            QMessageBox.warning(
-                self, "未检测到启动图片路径", 
-                "请先点击'检测路径'按钮检测启动图片路径"
-            )
+            self.show_warning_message("未检测到路径", "请先点击'检测路径'按钮")
             return
         
         # 注释掉二次确认
@@ -512,17 +560,13 @@ class MainWindow(QMainWindow):
         # if reply == QMessageBox.StandardButton.No:
         #     return
         
-        self.progress_bar.setVisible(True)
-        self.progress_bar.setRange(0, 0)
-        self.progress_bar.setFormat("正在还原...")
+        self.show_progress("正在还原...")
         
         success, msg = self.replacer.restore_backup(self.target_path)
         
-        self.progress_bar.setVisible(False)
+        self.hide_progress()
         
         if success:
-            # 改为状态栏提示
-            self.show_status_message("已从备份还原启动图片", 5000)
+            self.show_status_message("已从备份还原启动图片", 3000)
         else:
-            # 失败保留弹窗
-            QMessageBox.critical(self, "还原失败", msg)
+            self.show_error_message("还原失败", msg)
