@@ -181,6 +181,6 @@ cython_debug/
 .cursorindexingignore
 
 # custom-seewo-splash-screen
-assets/custom/
+images/custom/
 backups/
 config.json

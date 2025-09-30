@@ -1,12 +1,14 @@
 import json
 import os
+from utils.resource_path import get_app_data_path
 
 
 class ConfigManager:
     """配置文件管理器"""
     
     def __init__(self, config_file="config.json"):
-        self.config_file = config_file
+        # 配置文件保存在可执行文件目录
+        self.config_file = get_app_data_path(config_file)
         self.config = self.load()
     
     def load(self):
@@ -15,7 +17,8 @@ class ConfigManager:
             try:
                 with open(self.config_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
-            except:
+            except Exception as e:
+                print(f"加载配置失败: {e}")
                 return self.default_config()
         return self.default_config()
     
@@ -33,10 +36,10 @@ class ConfigManager:
         """默认配置"""
         return {
             "target_path": "",
-            "target_path_history": [],  # 新增:历史路径记录
+            "target_path_history": [],
             "last_selected_image": "",
             "custom_images": [],
-            "auto_detect_on_startup": True  # 新增:启动时是否自动检测
+            "auto_detect_on_startup": True
         }
     
     def get_target_path(self):
@@ -47,7 +50,6 @@ class ConfigManager:
         """设置目标路径"""
         if path:
             self.config["target_path"] = path
-            # 添加到历史记录
             self.add_to_path_history(path)
         else:
             self.config["target_path"] = ""
@@ -58,14 +60,10 @@ class ConfigManager:
         if "target_path_history" not in self.config:
             self.config["target_path_history"] = []
         
-        # 如果路径已存在,先移除
         if path in self.config["target_path_history"]:
             self.config["target_path_history"].remove(path)
         
-        # 添加到列表开头
         self.config["target_path_history"].insert(0, path)
-        
-        # 只保留最近5个路径
         self.config["target_path_history"] = self.config["target_path_history"][:5]
     
     def get_path_history(self):
