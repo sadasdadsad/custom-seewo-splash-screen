@@ -1,7 +1,7 @@
 import os
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
 from PyQt6.QtGui import QIcon, QPixmap
-from PyQt6.QtWidgets import QListWidgetItem
+from PyQt6.QtWidgets import QListWidgetItem, QSizePolicy
 from qfluentwidgets import ListWidget
 
 
@@ -17,11 +17,36 @@ class ImageListWidget(ListWidget):
     
     def _init_ui(self):
         """初始化UI"""
-        self.setIconSize(QSize(128, 128))
-        self.setSpacing(10)
+        # 设置图标尺寸
+        self.setIconSize(QSize(140, 140))
+        
+        # 设置网格尺寸
+        self.setGridSize(QSize(180, 200))
+        
+        # 设置间距
+        self.setSpacing(15)
+        
+        # 设置视图模式
         self.setViewMode(ListWidget.ViewMode.IconMode)
         self.setResizeMode(ListWidget.ResizeMode.Adjust)
         self.setMovement(ListWidget.Movement.Static)
+        self.setWrapping(True)
+        
+        # 设置选择模式
+        self.setSelectionMode(ListWidget.SelectionMode.SingleSelection)
+        
+        # 设置固定行高
+        self.setUniformItemSizes(True)
+        
+        # 设置最小尺寸
+        self.setMinimumHeight(450)
+        self.setMinimumWidth(400)
+        
+        # 设置尺寸策略
+        self.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding
+        )
     
     def load_images(self, preset_images: list, custom_images: list):
         """加载图片列表
@@ -40,13 +65,25 @@ class ImageListWidget(ListWidget):
             if os.path.exists(img_info["path"]):
                 pixmap = QPixmap(img_info["path"])
                 if not pixmap.isNull():
-                    item.setIcon(QIcon(pixmap))
+                    # 缩放图片
+                    scaled_pixmap = pixmap.scaled(
+                        140, 140,
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation
+                    )
+                    item.setIcon(QIcon(scaled_pixmap))
             
             item.setData(Qt.ItemDataRole.UserRole, img_info)
             
             # 设置工具提示
             img_type = '预设' if img_info['type'] == 'preset' else '自定义'
             item.setToolTip(f"类型: {img_type}\n文件名: {img_info['filename']}")
+            
+            # 设置文本对齐
+            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+            
+            # 设置固定尺寸提示
+            item.setSizeHint(QSize(180, 200))
             
             self.addItem(item)
     
@@ -69,6 +106,7 @@ class ImageListWidget(ListWidget):
             item = self.item(i)
             if item.data(Qt.ItemDataRole.UserRole)["filename"] == filename:
                 self.setCurrentItem(item)
+                self.scrollToItem(item)
                 break
     
     def _on_selection_changed(self):
