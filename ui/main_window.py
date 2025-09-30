@@ -140,7 +140,26 @@ class MainWindow(QMainWindow):
         self.progress_bar.setVisible(False)
         
         if paths:
-            self.target_path = paths[0]
+            # 如果检测到多个路径,让用户选择
+            if len(paths) > 1:
+                from PyQt6.QtWidgets import QInputDialog
+                items = [f"{i+1}. {path}" for i, path in enumerate(paths)]
+                item, ok = QInputDialog.getItem(
+                    self, 
+                    "选择目标路径",
+                    f"检测到 {len(paths)} 个可能的启动图片路径,\n请选择要使用的路径:",
+                    items,
+                    0,
+                    False
+                )
+                if ok and item:
+                    index = int(item.split('.')[0]) - 1
+                    self.target_path = paths[index]
+                else:
+                    return
+            else:
+                self.target_path = paths[0]
+            
             self.config_manager.set_target_path(self.target_path)
             self.update_target_label()
             QMessageBox.information(
@@ -148,13 +167,34 @@ class MainWindow(QMainWindow):
                 f"已检测到启动图片路径:\n{self.target_path}"
             )
         else:
-            self.target_path = ""
-            self.config_manager.set_target_path("")
-            self.update_target_label()
-            QMessageBox.warning(
-                self, "未检测到启动图片路径",
-                "未能自动检测到希沃白板的启动图片路径。\n\n可能的原因：\n1. 希沃白板未安装\n2. 安装路径非标准路径\n3. 权限不足\n\n建议手动指定路径或联系技术支持。"
-            )
+            # 未检测到路径,提示用户手动选择
+            self.target_path = PathDetector.manual_select_target_image(self)
+            
+            if self.target_path:
+                # 验证选择的路径
+                is_valid, error_msg = PathDetector.validate_target_path(self.target_path)
+                
+                if is_valid:
+                    self.config_manager.set_target_path(self.target_path)
+                    self.update_target_label()
+                    QMessageBox.information(
+                        self, "设置成功",
+                        f"已成功设置目标图片路径:\n{self.target_path}\n\n"
+                        "现在您可以选择图片进行替换了。"
+                    )
+                else:
+                    QMessageBox.warning(
+                        self, "路径无效",
+                        f"选择的路径无效:\n{error_msg}\n\n请重新选择。"
+                    )
+                    self.target_path = ""
+                    self.config_manager.set_target_path("")
+                    self.update_target_label()
+            else:
+                # 用户取消选择
+                self.config_manager.set_target_path("")
+                self.update_target_label()
+
     
     def update_target_label(self):
         """更新目标路径标签"""
