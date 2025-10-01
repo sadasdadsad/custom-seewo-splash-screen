@@ -35,8 +35,10 @@ class MainWindow(FluentWindow):
     
     def _init_window(self):
         """初始化窗口属性"""
+        from utils.resource_path import get_resource_path  # 确保导入路径处理模块
+
         self.setWindowTitle("SeewoSplash")
-        self.setWindowIcon(QIcon("assets/icon.ico"))
+        self.setWindowIcon(QIcon(get_resource_path("assets/icon.ico")))
         self.resize(900, 650)
         setTheme(Theme.AUTO)
     

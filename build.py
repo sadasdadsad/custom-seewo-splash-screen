@@ -117,6 +117,12 @@ class Builder:
         if presets_dir.exists():
             data_files.append((str(presets_dir), "assets/presets"))
             print(f"✓ 添加预设图片目录: {presets_dir}")
+
+        # 打包 assets/icon.ico 图标
+        icon_dir = self.root_dir / "assets" / "icon.ico"
+        if icon_dir.exists():
+            data_files.append((str(icon_dir), "assets/"))
+            print(f"✓ 添加图标: {icon_dir}")
             
         # 统计预设图片数量
             image_files = list(presets_dir.glob("*.png"))
