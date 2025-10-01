@@ -2,7 +2,7 @@ import os
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
 from PyQt6.QtGui import QIcon, QPixmap, QDragEnterEvent, QDropEvent
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSizePolicy
-from qfluentwidgets import FlowLayout, CardWidget
+from qfluentwidgets import FlowLayout, CardWidget, SingleDirectionScrollArea
 
 
 class ImageCard(CardWidget):
@@ -91,7 +91,7 @@ class ImageCard(CardWidget):
                 }
                 ImageCard:hover {
                     background-color: rgba(0, 0, 0, 0.05);
-          border: 2px solid rgba(0, 0, 0, 0.1);
+                    border: 2px solid rgba(0, 0, 0, 0.1);
                 }
             """)
     
@@ -102,7 +102,7 @@ class ImageCard(CardWidget):
 
 
 class ImageListWidget(QWidget):
-    """图片列表组件 - 使用 FlowLayout"""
+    """图片列表组件 - 使用带滚动的 FlowLayout"""
     
     imageSelected = pyqtSignal(dict)  # 发出选中图片信息的信号
     imagesDropped = pyqtSignal(list)  # 发出拖放的文件路径列表信号
@@ -116,8 +116,19 @@ class ImageListWidget(QWidget):
     
     def _init_ui(self):
         """初始化UI"""
+        # 主布局
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+        
+        # 创建滚动区域
+        self.scroll_area = SingleDirectionScrollArea(orient=Qt.Orientation.Vertical)
+        
+        # 创建内容容器
+        self.content_widget = QWidget()
+        
         # 创建 FlowLayout
-        self.flow_layout = FlowLayout(self, needAni=True)
+        self.flow_layout = FlowLayout(self.content_widget, needAni=True)
         
         # 自定义动画
         from PyQt6.QtCore import QEasingCurve
@@ -127,6 +138,26 @@ class ImageListWidget(QWidget):
         self.flow_layout.setContentsMargins(20, 20, 20, 20)
         self.flow_layout.setVerticalSpacing(15)
         self.flow_layout.setHorizontalSpacing(15)
+        
+        # 设置内容控件的样式和大小策略
+        self.content_widget.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.MinimumExpanding
+        )
+        
+        # 将内容控件设置到滚动区域
+        self.scroll_area.setWidget(self.content_widget)
+        
+        # 设置滚动区域属性
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        
+        # 启用透明背景
+        self.scroll_area.enableTransparentBackground()
+        
+        # 添加到主布局
+        main_layout.addWidget(self.scroll_area)
         
         # 设置最小尺寸
         self.setMinimumHeight(450)
@@ -141,6 +172,9 @@ class ImageListWidget(QWidget):
     def _setup_drag_drop(self):
         """设置拖放功能"""
         self.setAcceptDrops(True)
+        # 也要为滚动区域和内容控件启用拖放
+        self.scroll_area.setAcceptDrops(True)
+        self.content_widget.setAcceptDrops(True)
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         """拖拽进入事件"""
@@ -207,10 +241,23 @@ class ImageListWidget(QWidget):
         all_images = preset_images + custom_images
         
         for img_info in all_images:
-            card = ImageCard(img_info, self)
+            card = ImageCard(img_info, self.content_widget)
             card.imageClicked.connect(self._on_card_clicked)
             self.image_cards.append(card)
             self.flow_layout.addWidget(card)
+        
+        # 更新内容控件的高度以适应所有卡片
+        self._update_content_height()
+    
+    def _update_content_height(self):
+        """更新内容控件的高度"""
+        # 让FlowLayout重新计算布局
+        self.content_widget.updateGeometry()
+        
+        # 获取FlowLayout建议的最小高度
+        min_height = self.flow_layout.minimumSize().height()
+        if min_height > 0:
+            self.content_widget.setMinimumHeight(min_height)
     
     def _clear_layout(self):
         """清空布局"""
@@ -254,3 +301,10 @@ class ImageListWidget(QWidget):
             if card.img_info["filename"] == filename:
                 self._on_card_clicked(card.img_info)
                 break
+    
+    def resizeEvent(self, event):
+        """窗口大小变化事件"""
+        super().resizeEvent(event)
+        # 延迟更新内容高度，确保FlowLayout已经重新布局
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(10, self._update_content_height)
