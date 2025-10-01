@@ -36,12 +36,25 @@ class ImageCard(CardWidget):
         if os.path.exists(self.img_info["path"]):
             pixmap = QPixmap(self.img_info["path"])
             if not pixmap.isNull():
+                # 获取设备像素比例来支持高分屏
+                from PyQt6.QtWidgets import QApplication
+                dpr = QApplication.primaryScreen().devicePixelRatio()
+                
+                # 计算实际缩放尺寸
+                target_size = int(140 * dpr)
+                
                 scaled_pixmap = pixmap.scaled(
-                    140, 140,
+                    target_size, target_size,
                     Qt.AspectRatioMode.KeepAspectRatio,
                     Qt.TransformationMode.SmoothTransformation
                 )
+                
+                # 设置设备像素比例
+                scaled_pixmap.setDevicePixelRatio(dpr)
+                
                 self.image_label.setPixmap(scaled_pixmap)
+
+
         
         # 文字标签
         self.text_label = QLabel(self.img_info["display_name"])
