@@ -1,7 +1,6 @@
-# import os
 from PyQt6.QtWidgets import QMessageBox, QInputDialog
 from utils.path_detector import PathDetector
-# from .message_helper import MessageHelper
+from qfluentwidgets import MessageBox
 
 
 class PathHistoryDialog:
@@ -21,11 +20,12 @@ class PathHistoryDialog:
         history = config_manager.get_path_history()
         
         if not history:
-            QMessageBox.information(
-                parent,
+            w = MessageBox(
                 "无历史记录",
-                "暂无历史路径记录。\n\n请点击'检测路径'按钮检测启动图片路径。"
+                "暂无历史路径记录。\n\n请点击'检测路径'按钮检测启动图片路径。",
+                parent
             )
+            w.exec()
             return "", False
         
         # 验证历史路径并标记有效性
