@@ -9,17 +9,17 @@
 
 一个用于自定义希沃白板启动画面的简单工具
 
-[功能特性](#✨功能特性) • [安装使用](#🚀安装使用) • [构建](#📦构建) • [常见问题](#🔧常见问题) • [许可证](#📄许可证)
+[功能特性](#功能特性) • [安装使用](#安装使用) • [构建](#构建) • [常见问题](#常见问题) • [许可证](#许可证)
 
 </div>
 
 ---
 
-## 📖简介
+## 简介
 
 SeewoSplash 是一个 Fluent 风格的图形化工具，允许你自定义希沃白板的启动画面。告别单调的默认启动图片，让你的希沃白板展现个性！
 
-### ✨功能特性
+### 功能特性
 
 - 🎨 **预设图片** - 内置启动图片
 - 📁 **自定义导入** - 支持导入自己的 PNG 图片
@@ -27,18 +27,18 @@ SeewoSplash 是一个 Fluent 风格的图形化工具，允许你自定义希沃
 - 💾 **自动备份** - 替换前备份原始图片，支持还原
 - 🖼️ **图片管理** - 支持重命名、删除自定义图片
 
-### 🖼️应用截图
+### 应用截图
 
 |  深色模式  |  浅色模式  |
 |-----------|-----------|
 | ![主页面-深色](docs/screenshots/main_window_dark.png "主页面-深色") | ![主页面-浅色](docs/screenshots/main_window_light.png "主页面-浅色") |
 
-## 🚀安装使用
+## 安装使用
 
 ### 方式一：下载发行版（推荐）
 
 1. 前往 [Releases](https://github.com/fengyec2/custom-seewo-splash-screen/releases) 页面
-2. 下载最新版本的 SeewoSplash.zip`
+2. 下载最新版本的 `SeewoSplash.zip`
 3. 解压后运行 `SeewoSplash.exe` 即可使用
 
 ### 方式二：从源码运行
@@ -69,7 +69,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-## 📦构建
+## 构建
 
 如果你想自己构建可执行文件：
 
@@ -83,7 +83,7 @@ python build.py
 
 构建完成后，可执行文件将位于 `dist/` 目录下。
 
-## 📸使用说明
+## 使用说明
 
 ### 首次使用
 
@@ -105,7 +105,7 @@ python build.py
 1. 点击"从备份还原"按钮
 2. 程序会自动从备份恢复原始图片
 
-## 📁项目结构
+## 项目结构
 
 ```
 custom-seewo-splash-screen/
@@ -138,7 +138,7 @@ custom-seewo-splash-screen/
     └── path_detector.py       # 路径检测
 ```
 
-## 🔧常见问题
+## 常见问题
 
 ### Q: 为什么检测不到希沃白板路径？
 
@@ -158,7 +158,7 @@ A: 请尝试：
 
 A: 可以！程序在首次替换时会自动备份原始图片，点击"从备份还原"即可恢复。
 
-## 🤝贡献
+## 贡献
 
 欢迎提交 Issue 和 Pull Request！
 
@@ -168,11 +168,11 @@ A: 可以！程序在首次替换时会自动备份原始图片，点击"从备�
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 提交 Pull Request
 
-## 📄许可证
+## 许可证
 
 本项目采用 GNU General Public License v3.0 许可证 - 详见 [LICENSE](LICENSE)
 
-## 📧联系方式
+## 联系方式
 
 - Issue: [提交问题](https://github.com/fengyec2/custom-seewo-splash-screen/issues)
 
