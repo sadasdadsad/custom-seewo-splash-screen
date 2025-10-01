@@ -1,6 +1,6 @@
 import os
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
-from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtGui import QIcon, QPixmap, QDragEnterEvent, QDropEvent
 from PyQt6.QtWidgets import QListWidgetItem, QSizePolicy
 from qfluentwidgets import ListWidget
 
@@ -9,10 +9,12 @@ class ImageListWidget(ListWidget):
     """图片列表组件"""
     
     imageSelected = pyqtSignal(dict)  # 发出选中图片信息的信号
+    imagesDropped = pyqtSignal(list)  # 发出拖放的文件路径列表信号
     
     def __init__(self, parent=None):
         super().__init__(parent)
         self._init_ui()
+        self._setup_drag_drop()
         self.itemSelectionChanged.connect(self._on_selection_changed)
     
     def _init_ui(self):
@@ -47,6 +49,62 @@ class ImageListWidget(ListWidget):
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Expanding
         )
+    
+    def _setup_drag_drop(self):
+        """设置拖放功能"""
+        self.setAcceptDrops(True)
+        self.viewport().setAcceptDrops(True)  # 确保视口也接受拖放
+
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        """拖拽进入事件"""
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            has_png = any(
+                url.toLocalFile().lower().endswith('.png') 
+                for url in urls if url.isLocalFile()  # 确保是本地文件
+            )
+            
+            if has_png:
+                event.accept()  # 改用 accept()
+                event.acceptProposedAction()
+            else:
+                event.ignore()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        """拖拽移动事件"""
+        if event.mimeData().hasUrls():
+            event.accept()  # 改用 accept()
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event: QDropEvent):
+        """拖放事件"""
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            file_paths = []
+            ignored_files = []
+            
+            # 过滤出PNG文件
+            for url in urls:
+                if url.isLocalFile():  # 确保是本地文件
+                    file_path = url.toLocalFile()
+                    if file_path.lower().endswith('.png'):
+                        file_paths.append(file_path)
+                    else:
+                        ignored_files.append(os.path.basename(file_path))
+            
+            # 发出信号
+            if file_paths or ignored_files:
+                self.imagesDropped.emit([file_paths, ignored_files])
+            
+            event.accept()
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
     
     def load_images(self, preset_images: list, custom_images: list):
         """加载图片列表

@@ -72,6 +72,7 @@ class MainWindow(FluentWindow):
         
         # 图片列表信号
         self.image_list.imageSelected.connect(self._on_image_selected)
+        self.image_list.imagesDropped.connect(self._on_images_dropped)  # 新增
         
         # 操作栏信号
         self.action_bar.importClicked.connect(self.import_image)
@@ -94,6 +95,79 @@ class MainWindow(FluentWindow):
         self.config_manager.set_last_selected_image(image_info["filename"])
         is_custom = image_info["type"] == "custom"
         self.action_bar.set_rename_delete_enabled(is_custom)
+
+    def _on_images_dropped(self, drop_data):
+        """处理拖放的图片文件
+        
+        Args:
+            drop_data: [file_paths, ignored_files] 列表
+        """
+        file_paths, ignored_files = drop_data
+        
+        # 如果有被忽略的非PNG文件，显示警告
+        if ignored_files:
+            ignored_str = "、".join(ignored_files[:3])  # 最多显示3个
+            if len(ignored_files) > 3:
+                ignored_str += f" 等{len(ignored_files)}个文件"
+            
+            MessageHelper.show_warning(
+                self,
+                "文件格式错误",
+                f"以下文件不是PNG格式，已忽略：\n{ignored_str}"
+            )
+        
+        # 如果没有有效的PNG文件，直接返回
+        if not file_paths:
+            return
+        
+        # 显示进度
+        self.show_progress(f"正在导入 {len(file_paths)} 个文件...")
+        
+        # 导入所有PNG文件
+        success_count = 0
+        failed_files = []
+        
+        for file_path in file_paths:
+            success, msg = self.image_manager.import_image(file_path)
+            if success:
+                success_count += 1
+            else:
+                failed_files.append((os.path.basename(file_path), msg))
+        
+        self.hide_progress()
+        
+        # 显示导入结果
+        if success_count > 0:
+            if success_count == len(file_paths):
+                # 全部成功
+                MessageHelper.show_success(
+                    self,
+                    f"成功导入 {success_count} 个图片",
+                    3000
+                )
+            else:
+                # 部分成功
+                MessageHelper.show_success(
+                    self,
+                    f"成功导入 {success_count} 个图片，{len(failed_files)} 个失败",
+                    3000
+                )
+            
+            # 刷新图片列表
+            self.load_images()
+        
+        # 如果有失败的，显示详细错误信息
+        if failed_files:
+            error_details = "\n".join([f"• {name}: {msg}" for name, msg in failed_files[:5]])
+            if len(failed_files) > 5:
+                error_details += f"\n... 还有 {len(failed_files) - 5} 个文件失败"
+            
+            MessageHelper.show_error(
+                self,
+                "部分文件导入失败",
+                error_details
+            )
+
     
     def show_progress(self, message: str):
         """显示进度
