@@ -367,9 +367,7 @@ class MainWindow(FluentWindow):
     
     def show_path_history(self):
         """显示历史路径选择对话框"""
-        from ui.dialogs.path_history_dialog import PathHistoryHelper
-        
-        selected_path, success = PathHistoryHelper.show_and_select(
+        selected_path, success = PathHistoryDialog.show_and_select(
             self,
             self.config_manager
         )
@@ -378,7 +376,14 @@ class MainWindow(FluentWindow):
             self.target_path = selected_path
             self.config_manager.set_target_path(selected_path)
             self.path_card.update_path_display(self.target_path)
-            # PathHistoryHelper 内部已经显示了成功消息,这里不需要重复显示
+            MessageHelper.show_success(
+                self,
+                f"已设置目标路径: {os.path.basename(selected_path)}",
+                5000
+            )
+        elif success and not selected_path:
+            # 用户选择了重新检测
+            self.detect_target_path()
     
     def load_images(self):
         """加载图片列表"""

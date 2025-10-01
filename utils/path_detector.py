@@ -1,7 +1,8 @@
 import os
 import glob
-from qfluentwidgets import MessageBox, Dialog
-from PyQt6.QtWidgets import QFileDialog
+import re
+from PyQt6.QtWidgets import QFileDialog, QMessageBox
+
 
 class PathDetector:
     """检测希沃白板启动图片路径"""
@@ -229,8 +230,10 @@ class PathDetector:
         Returns:
             str: 选中的图片路径,如果取消则返回空字符串
         """
-        # 使用QFluentWidgets的MessageBox显示说明对话框
-        content = (
+        # 显示说明对话框
+        reply = QMessageBox.question(
+            parent,
+            "手动选择目标图片",
             "无法自动检测到希沃白板的启动图片。\n\n"
             "您可以手动选择要替换的目标图片文件。\n"
             "目标图片通常位于以下位置之一:\n\n"
@@ -240,72 +243,66 @@ class PathDetector:
             "   C:\\Program Files\\Seewo\\EasiNote5\\EasiNote5.xxx\\Main\\Assets\\SplashScreen.png\n\n"
             "3. SplashScreen.png (新版):\n"
             "   C:\\Program Files\\Seewo\\EasiNote5\\EasiNote5_x.x.x.xxxx\\Main\\Resources\\Startup\\SplashScreen.png\n\n"
-            "是否现在手动选择目标图片?"
+            "是否现在手动选择目标图片?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes
         )
         
-        # 创建确认对话框
-        dialog = MessageBox(
-            title="手动选择目标图片",
-            content=content,
-            parent=parent
-        )
+        if reply == QMessageBox.StandardButton.No:
+            return ""
         
-        if dialog.exec():
-            # 用户点击了确定按钮,打开文件选择对话框
-            # 注意: QFluentWidgets目前没有提供文件选择对话框,仍使用PyQt6的QFileDialog
-            file_dialog = QFileDialog(parent, "选择希沃白板启动图片")
-            file_dialog.setNameFilter("PNG图片 (*.png);;所有文件 (*.*)")
-            file_dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
-            
-            # 设置初始目录为常见路径
-            initial_dir = "C:\\Program Files\\Seewo\\EasiNote5"
-            if not os.path.exists(initial_dir):
-                initial_dir = "C:\\Program Files (x86)\\Seewo\\EasiNote5"
-            if not os.path.exists(initial_dir):
-                initial_dir = os.path.join(os.environ.get("APPDATA", "C:\\"), "Seewo")
-            if not os.path.exists(initial_dir):
-                initial_dir = "C:\\"
-            
-            file_dialog.setDirectory(initial_dir)
-            
-            if file_dialog.exec():
-                selected_files = file_dialog.selectedFiles()
-                if selected_files:
-                    selected_path = selected_files[0]
-                    
-                    # 验证选择的文件
-                    if not selected_path.lower().endswith('.png'):
-                        MessageBox(
-                            title="文件类型错误",
-                            content="请选择PNG格式的图片文件。",
-                            parent=parent
-                        ).exec()
-                        return ""
-                    
-                    if not os.path.exists(selected_path):
-                        MessageBox(
-                            title="文件不存在",
-                            content="选择的文件不存在,请重新选择。",
-                            parent=parent
-                        ).exec()
-                        return ""
-                    
-                    # 确认选择
-                    filename = os.path.basename(selected_path)
-                    confirm_content = (
-                        f"您选择的目标图片是:\n\n{selected_path}\n\n"
-                        f"文件名: {filename}\n\n"
-                        "确认使用此图片作为替换目标吗?"
+        # 打开文件选择对话框
+        file_dialog = QFileDialog(parent, "选择希沃白板启动图片")
+        file_dialog.setNameFilter("PNG图片 (*.png);;所有文件 (*.*)")
+        file_dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
+        
+        # 设置初始目录为常见路径
+        initial_dir = "C:\\Program Files\\Seewo\\EasiNote5"
+        if not os.path.exists(initial_dir):
+            initial_dir = "C:\\Program Files (x86)\\Seewo\\EasiNote5"
+        if not os.path.exists(initial_dir):
+            initial_dir = os.path.join(os.environ.get("APPDATA", "C:\\"), "Seewo")
+        if not os.path.exists(initial_dir):
+            initial_dir = "C:\\"
+        
+        file_dialog.setDirectory(initial_dir)
+        
+        if file_dialog.exec():
+            selected_files = file_dialog.selectedFiles()
+            if selected_files:
+                selected_path = selected_files[0]
+                
+                # 验证选择的文件
+                if not selected_path.lower().endswith('.png'):
+                    QMessageBox.warning(
+                        parent,
+                        "文件类型错误",
+                        "请选择PNG格式的图片文件。"
                     )
-                    
-                    confirm_dialog = MessageBox(
-                        title="确认目标图片",
-                        content=confirm_content,
-                        parent=parent
+                    return ""
+                
+                if not os.path.exists(selected_path):
+                    QMessageBox.warning(
+                        parent,
+                        "文件不存在",
+                        "选择的文件不存在,请重新选择。"
                     )
-                    
-                    if confirm_dialog.exec():
-                        return selected_path
+                    return ""
+                
+                # 确认选择
+                filename = os.path.basename(selected_path)
+                confirm = QMessageBox.question(
+                    parent,
+                    "确认目标图片",
+                    f"您选择的目标图片是:\n\n{selected_path}\n\n"
+                    f"文件名: {filename}\n\n"
+                    "确认使用此图片作为替换目标吗?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.Yes
+                )
+                
+                if confirm == QMessageBox.StandardButton.Yes:
+                    return selected_path
         
         return ""
     
