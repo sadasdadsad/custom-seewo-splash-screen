@@ -1,8 +1,7 @@
 import os
-from PyQt6.QtWidgets import QVBoxLayout, QWidget, QFileDialog, QInputDialog, QMessageBox
+from PyQt6.QtWidgets import QVBoxLayout, QWidget, QFileDialog, QInputDialog
 from PyQt6.QtGui import QIcon
-# from PyQt6.QtCore import Qt
-from qfluentwidgets import FluentWindow, FluentIcon as FIF, ProgressBar, Theme, setTheme
+from qfluentwidgets import FluentWindow, FluentIcon as FIF, ProgressBar, Theme, setTheme, MessageBox
 
 from core.config_manager import ConfigManager
 from core.image_manager import ImageManager
@@ -23,8 +22,14 @@ class MainWindow(FluentWindow):
         self._init_managers()
         self._init_ui()
         self._connect_signals()
-        self._load_initial_data()
-        self._check_admin_status()
+        
+        # 显示窗口后再加载数据
+        self.show()
+        
+        # 使用 QTimer 延迟加载数据，避免阻塞窗口显示
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(100, self._load_initial_data)
+        QTimer.singleShot(200, self._check_admin_status)
     
     def _init_window(self):
         """初始化窗口属性"""
@@ -85,7 +90,9 @@ class MainWindow(FluentWindow):
     
     def _load_initial_data(self):
         """加载初始数据"""
+        # 先加载图片列表（这样即使没有路径，用户也能看到界面）
         self.load_images()
+        # 再加载和验证目标路径（不显示任何阻塞式对话框）
         self.load_and_validate_target_path()
     
     def _check_admin_status(self):
@@ -200,8 +207,7 @@ class MainWindow(FluentWindow):
         """
         if is_admin():
             # 已经是管理员权限了，但还是权限不足
-            QMessageBox.critical(
-                self,
+            w = MessageBox(
                 "权限不足",
                 f"{error_message}\n\n"
                 "即使以管理员身份运行，仍然无法访问该文件。\n\n"
@@ -212,41 +218,41 @@ class MainWindow(FluentWindow):
                 "建议：\n"
                 "• 完全关闭希沃白板后重试\n"
                 "• 检查文件是否被杀毒软件锁定\n"
-                "• 尝试重启电脑后再操作"
+                "• 尝试重启电脑后再操作",
+                self
             )
+            w.exec()
         else:
             # 不是管理员权限，询问是否以管理员身份重启
-            reply = QMessageBox.question(
-                self,
+            w = MessageBox(
                 "需要管理员权限",
                 f"{error_message}\n\n"
                 "此操作需要管理员权限才能完成。\n\n"
                 "是否以管理员身份重新启动程序？\n\n"
                 "注意：程序将会关闭并重新启动。",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.Yes
+                self
             )
             
-            if reply == QMessageBox.StandardButton.Yes:
+            if w.exec():
                 # 请求管理员权限并重启
                 if request_admin_and_exit():
                     # 成功请求，当前程序会退出
-                    # 不需要额外操作，程序会自动关闭
                     pass
                 else:
                     # 请求失败
-                    QMessageBox.warning(
-                        self,
+                    w = MessageBox(
                         "启动失败",
                         "无法以管理员身份重新启动程序。\n\n"
                         "请尝试以下方法：\n"
                         "• 右键点击程序图标\n"
                         "• 选择以管理员身份运行\n\n"
-                        "或者关闭希沃白板后再试。"
+                        "或者关闭希沃白板后再试。",
+                        self
                     )
+                    w.exec()
     
     def load_and_validate_target_path(self):
-        """加载并验证目标路径"""
+        """加载并验证目标路径（静默模式，不弹出任何对话框）"""
         # 先尝试加载上次保存的路径
         saved_path = self.config_manager.get_target_path()
         
@@ -260,24 +266,14 @@ class MainWindow(FluentWindow):
                 self.path_card.update_path_display(self.target_path)
                 MessageHelper.show_success(
                     self, 
-                    f"已加载上次使用的路径: {os.path.basename(saved_path)}"
+                    f"已加载上次使用的路径: {os.path.basename(saved_path)}",
+                    3000
                 )
                 return
             else:
-                # 路径无效,提示用户
-                reply = QMessageBox.question(
-                    self,
-                    "路径已失效",
-                    f"上次保存的路径已失效:\n{saved_path}\n\n"
-                    f"失效原因: {error_msg}\n\n"
-                    "是否需要重新检测路径?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                    QMessageBox.StandardButton.Yes
-                )
-                
-                if reply == QMessageBox.StandardButton.Yes:
-                    self.detect_target_path()
-                    return
+                # 路径无效，静默清空，不弹窗
+                self.target_path = ""
+                self.path_card.update_path_display("")
         
         # 没有保存的路径,尝试从历史记录中查找有效路径
         history = self.config_manager.get_path_history()
@@ -289,21 +285,41 @@ class MainWindow(FluentWindow):
                 self.path_card.update_path_display(self.target_path)
                 MessageHelper.show_success(
                     self,
-                    f"已从历史记录恢复路径: {os.path.basename(historical_path)}"
+                    f"已从历史记录恢复路径: {os.path.basename(historical_path)}",
+                    3000
                 )
                 return
         
         # 清理无效的历史记录
         self.config_manager.clear_invalid_history()
         
-        # 如果启用了自动检测,则自动检测
+        # 如果启用了自动检测,则自动检测（静默模式）
         if self.config_manager.get_auto_detect_on_startup():
-            self.detect_target_path()
+            self._silent_detect_target_path()
         else:
+            # 没有路径，但不自动检测，只是更新显示为空
+            self.path_card.update_path_display("")
+    
+    def _silent_detect_target_path(self):
+        """静默检测目标路径（不弹出任何对话框）"""
+        paths = PathDetector.detect_all_paths()
+        
+        if paths:
+            # 如果检测到路径，使用第一个（不弹窗选择）
+            self.target_path = paths[0]
+            self.config_manager.set_target_path(self.target_path)
+            self.path_card.update_path_display(self.target_path)
+            MessageHelper.show_success(
+                self,
+                f"检测成功: {os.path.basename(self.target_path)}",
+                3000
+            )
+        else:
+            # 未检测到路径，静默失败，不弹窗
             self.path_card.update_path_display("")
     
     def detect_target_path(self):
-        """检测目标路径"""
+        """检测目标路径（用户主动触发）"""
         self.show_progress("正在检测路径...")
         
         paths = PathDetector.detect_all_paths()
@@ -326,6 +342,7 @@ class MainWindow(FluentWindow):
                     index = int(item.split('.')[0]) - 1
                     self.target_path = paths[index]
                 else:
+                    # 用户取消选择，保持当前状态
                     return
             else:
                 self.target_path = paths[0]
@@ -354,16 +371,15 @@ class MainWindow(FluentWindow):
                         5000
                     )
                 else:
-                    QMessageBox.warning(
-                        self, "路径无效",
-                        f"选择的路径无效:\n{error_msg}\n\n请重新选择。"
+                    w = MessageBox(
+                        "路径无效",
+                        f"选择的路径无效:\n{error_msg}\n\n请重新选择。",
+                        self
                     )
+                    w.exec()
                     self.target_path = ""
                     self.config_manager.set_target_path("")
                     self.path_card.update_path_display("")
-            else:
-                # 用户取消选择
-                self.path_card.update_path_display("")
     
     def show_path_history(self):
         """显示历史路径选择对话框"""
