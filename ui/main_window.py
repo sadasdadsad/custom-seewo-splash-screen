@@ -40,6 +40,7 @@ class MainWindow(FluentWindow):
         self.setWindowTitle("SeewoSplash")
         self.setWindowIcon(QIcon(get_resource_path("assets/icon.ico")))
         self.resize(900, 650)
+        self.center_window()
         setTheme(Theme.AUTO)
     
     def _init_managers(self):
@@ -270,3 +271,10 @@ class MainWindow(FluentWindow):
         last_selected = self.config_manager.get_last_selected_image()
         if last_selected:
             self.image_list.select_image_by_filename(last_selected)
+
+    def center_window(self):
+        """将窗口移动到屏幕中心"""
+        screen = self.screen().availableGeometry()
+        frame = self.frameGeometry()
+        frame.moveCenter(screen.center())
+        self.move(frame.topLeft())
