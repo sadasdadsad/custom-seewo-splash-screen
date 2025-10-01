@@ -33,24 +33,30 @@ class PathDetector:
         # 检测 Program Files (x86)
         base_path_x86 = "C:\\Program Files (x86)\\Seewo\\EasiNote5"
         if os.path.exists(base_path_x86):
-            # 旧版路径: EasiNote5*/Main/Assets/SplashScreen.png
-            pattern_old = os.path.join(base_path_x86, "EasiNote5*", "Main", "Assets", "SplashScreen.png")
-            paths.extend(glob.glob(pattern_old))
+            # 所有可能的路径组合
+            patterns = [
+                # 旧版路径格式
+                os.path.join(base_path_x86, "EasiNote5*", "Main", "Assets", "SplashScreen.png"),
+                # 新版路径格式（我之前假设的）
+                os.path.join(base_path_x86, "EasiNote5_*", "Main", "Resources", "Startup", "SplashScreen.png"),
+            ]
             
-            # 新版路径: EasiNote5_*/Main/Resources/Startup/SplashScreen.png
-            pattern_new = os.path.join(base_path_x86, "EasiNote5_*", "Main", "Resources", "Startup", "SplashScreen.png")
-            paths.extend(glob.glob(pattern_new))
+            for pattern in patterns:
+                paths.extend(glob.glob(pattern))
         
         # 检测 Program Files
         base_path = "C:\\Program Files\\Seewo\\EasiNote5"
         if os.path.exists(base_path):
-            # 旧版路径: EasiNote5*/Main/Assets/SplashScreen.png
-            pattern_old = os.path.join(base_path, "EasiNote5*", "Main", "Assets", "SplashScreen.png")
-            paths.extend(glob.glob(pattern_old))
+            # 所有可能的路径组合
+            patterns = [
+                # 旧版路径格式
+                os.path.join(base_path, "EasiNote5*", "Main", "Assets", "SplashScreen.png"),
+                # 新版路径格式（我之前假设的）
+                os.path.join(base_path, "EasiNote5_*", "Main", "Resources", "Startup", "SplashScreen.png"),
+            ]
             
-            # 新版路径: EasiNote5_*/Main/Resources/Startup/SplashScreen.png
-            pattern_new = os.path.join(base_path, "EasiNote5_*", "Main", "Resources", "Startup", "SplashScreen.png")
-            paths.extend(glob.glob(pattern_new))
+            for pattern in patterns:
+                paths.extend(glob.glob(pattern))
         
         return paths
     
@@ -142,32 +148,30 @@ class PathDetector:
         versions = PathDetector.detect_all_easinote_versions()
         
         for version in versions:
-            # 根据版本格式确定路径
-            if version['is_new_format']:
-                # 新版路径: Main/Resources/Startup/SplashScreen.png
-                splash_path = os.path.join(
-                    version['full_path'], 
-                    "Main", 
-                    "Resources", 
-                    "Startup", 
-                    "SplashScreen.png"
-                )
-            else:
-                # 旧版路径: Main/Assets/SplashScreen.png
-                splash_path = os.path.join(
-                    version['full_path'], 
-                    "Main", 
-                    "Assets", 
-                    "SplashScreen.png"
-                )
+            # 尝试所有可能的路径组合
+            possible_paths = [
+                # 路径1: Main/Assets/SplashScreen.png (最常见)
+                os.path.join(version['full_path'], "Main", "Assets", "SplashScreen.png"),
+                # 路径2: Main/Resources/Startup/SplashScreen.png (新版可能路径)
+                os.path.join(version['full_path'], "Main", "Resources", "Startup", "SplashScreen.png"),
+            ]
             
-            if os.path.exists(splash_path):
-                splash_paths.append({
-                    'path': splash_path,
-                    'version': version['version_str'],
-                    'folder_name': version['folder_name'],
-                    'is_new_format': version['is_new_format']
-                })
+            for splash_path in possible_paths:
+                if os.path.exists(splash_path):
+                    # 确定路径类型
+                    if "Resources\\Startup" in splash_path:
+                        path_type = "新版路径格式"
+                    else:
+                        path_type = "标准路径格式"
+                    
+                    splash_paths.append({
+                        'path': splash_path,
+                        'version': version['version_str'],
+                        'folder_name': version['folder_name'],
+                        'is_new_format': version['is_new_format'],
+                        'path_type': path_type
+                    })
+                    break  # 找到一个有效路径就跳出
         
         return splash_paths
     
@@ -197,18 +201,19 @@ class PathDetector:
             all_paths.append({
                 'path': path,
                 'type': 'Banner',
-                'description': f'Banner图片 (用户: {user_name})',
+        'description': f'Banner图片 (用户: {user_name})',
                 'version': 'N/A'
             })
         
         # SplashScreen路径
         splash_paths = PathDetector.get_splash_paths_by_version()
         for info in splash_paths:
-            type_desc = "新版启动图" if info['is_new_format'] else "旧版启动图"
+            folder_prefix = "新版" if info['is_new_format'] else "旧版"
+            description = f'{folder_prefix}启动图 - {info["path_type"]} (版本: {info["version"]})'
             all_paths.append({
                 'path': info['path'],
                 'type': 'SplashScreen',
-                'description': f'{type_desc} (版本: {info["version"]})',
+                'description': description,
                 'version': info['version']
             })
         
