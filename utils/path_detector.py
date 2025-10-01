@@ -1,7 +1,8 @@
 import os
 import glob
 import re
-from PyQt6.QtWidgets import QFileDialog, QMessageBox
+from qfluentwidgets import MessageBox
+from PyQt6.QtWidgets import QFileDialog
 
 
 class PathDetector:
@@ -37,7 +38,7 @@ class PathDetector:
             patterns = [
                 # 旧版路径格式
                 os.path.join(base_path_x86, "EasiNote5*", "Main", "Assets", "SplashScreen.png"),
-                # 新版路径格式（我之前假设的）
+                # 新版路径格式
                 os.path.join(base_path_x86, "EasiNote5_*", "Main", "Resources", "Startup", "SplashScreen.png"),
             ]
             
@@ -51,7 +52,7 @@ class PathDetector:
             patterns = [
                 # 旧版路径格式
                 os.path.join(base_path, "EasiNote5*", "Main", "Assets", "SplashScreen.png"),
-                # 新版路径格式（我之前假设的）
+                # 新版路径格式
                 os.path.join(base_path, "EasiNote5_*", "Main", "Resources", "Startup", "SplashScreen.png"),
             ]
             
@@ -96,7 +97,7 @@ class PathDetector:
     @staticmethod
     def _parse_version_info(folder_name):
         """
-     解析版本信息
+        解析版本信息
         
         Args:
             folder_name: 文件夹名称，如 "EasiNote5_5.2.4.9158"
@@ -105,7 +106,6 @@ class PathDetector:
             dict: 版本信息字典
         """
         # 匹配版本号模式
-        # EasiNote5.xxx 或 EasiNote5_x.x.x.xxxx
         patterns = [
             r'EasiNote5_(\d+\.\d+\.\d+\.\d+)',  # 新版: EasiNote5_5.2.4.9158
             r'EasiNote5\.(\d+\.\d+\.\d+)',      # 旧版: EasiNote5.5.2.3
@@ -200,8 +200,8 @@ class PathDetector:
             user_name = path.split('\\')[2] if len(path.split('\\')) > 2 else 'Unknown'
             all_paths.append({
                 'path': path,
-                'type': 'Banner',
-        'description': f'Banner图片 (用户: {user_name})',
+'type': 'Banner',
+                'description': f'Banner图片 (用户: {user_name})',
                 'version': 'N/A'
             })
         
@@ -230,10 +230,8 @@ class PathDetector:
         Returns:
             str: 选中的图片路径,如果取消则返回空字符串
         """
-        # 显示说明对话框
-        reply = QMessageBox.question(
-            parent,
-            "手动选择目标图片",
+        # 创建自定义消息框
+        content = (
             "无法自动检测到希沃白板的启动图片。\n\n"
             "您可以手动选择要替换的目标图片文件。\n"
             "目标图片通常位于以下位置之一:\n\n"
@@ -243,12 +241,12 @@ class PathDetector:
             "   C:\\Program Files\\Seewo\\EasiNote5\\EasiNote5.xxx\\Main\\Assets\\SplashScreen.png\n\n"
             "3. SplashScreen.png (新版):\n"
             "   C:\\Program Files\\Seewo\\EasiNote5\\EasiNote5_x.x.x.xxxx\\Main\\Resources\\Startup\\SplashScreen.png\n\n"
-            "是否现在手动选择目标图片?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.Yes
+            "是否现在手动选择目标图片?"
         )
         
-        if reply == QMessageBox.StandardButton.No:
+        # 使用 MessageBox 创建询问对话框
+        w = MessageBox("手动选择目标图片", content, parent)
+        if not w.exec():
             return ""
         
         # 打开文件选择对话框
@@ -274,34 +272,33 @@ class PathDetector:
                 
                 # 验证选择的文件
                 if not selected_path.lower().endswith('.png'):
-                    QMessageBox.warning(
-                        parent,
+                    w = MessageBox(
                         "文件类型错误",
-                        "请选择PNG格式的图片文件。"
+                        "请选择PNG格式的图片文件。",
+                        parent
                     )
+                    w.exec()
                     return ""
                 
                 if not os.path.exists(selected_path):
-                    QMessageBox.warning(
-                        parent,
+                    w = MessageBox(
                         "文件不存在",
-                        "选择的文件不存在,请重新选择。"
+                        "选择的文件不存在,请重新选择。",
+                        parent
                     )
+                    w.exec()
                     return ""
                 
                 # 确认选择
                 filename = os.path.basename(selected_path)
-                confirm = QMessageBox.question(
-                    parent,
-                    "确认目标图片",
+                confirm_content = (
                     f"您选择的目标图片是:\n\n{selected_path}\n\n"
                     f"文件名: {filename}\n\n"
-                    "确认使用此图片作为替换目标吗?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                    QMessageBox.StandardButton.Yes
+                    "确认使用此图片作为替换目标吗?"
                 )
                 
-                if confirm == QMessageBox.StandardButton.Yes:
+                w = MessageBox("确认目标图片", confirm_content, parent)
+                if w.exec():
                     return selected_path
         
         return ""
