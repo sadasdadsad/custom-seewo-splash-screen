@@ -53,8 +53,6 @@ class ImageCard(CardWidget):
                 scaled_pixmap.setDevicePixelRatio(dpr)
                 
                 self.image_label.setPixmap(scaled_pixmap)
-
-
         
         # 文字标签
         self.text_label = QLabel(self.img_info["display_name"])

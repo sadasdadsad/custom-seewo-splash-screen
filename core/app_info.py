@@ -4,7 +4,7 @@
 这些信息不会存储在 config.json 中。
 """
 
-__version__ = "2.0.8"
+__version__ = "2.1.3"
 __author__ = "fengyec2"
 __app_name__ = "SeewoSplash"
 __description__ = "SeewoSplash"
