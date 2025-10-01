@@ -4,7 +4,7 @@ import os
 from PyQt6.QtWidgets import QWidget, QFileDialog, QInputDialog
 from core.config_manager import ConfigManager
 from core.image_manager import ImageManager
-
+from qfluentwidgets import MessageBoxBase, SubtitleLabel, LineEdit
 
 class ImageController:
     """图片操作控制器"""
@@ -67,14 +67,12 @@ class ImageController:
         if image_info["type"] != "custom":
             return False, "只能重命名自定义图片"
         
-        new_name, ok = QInputDialog.getText(
-            self.parent, "重命名图片",
-            "请输入新的显示名称:",
-            text=image_info["display_name"]
-        )
+        # 创建并显示重命名对话框
+        dialog = RenameImageDialog(image_info["display_name"], self.parent)
         
-        if ok and new_name and new_name.strip():
-            new_name = new_name.strip()
+        if dialog.exec():
+            new_name = dialog.nameLineEdit.text().strip()
+            
             success, msg = self.image_manager.rename_custom_image(
                 image_info["filename"],
                 new_name
@@ -107,3 +105,26 @@ class ImageController:
             return True, f"已删除图片: {image_info['display_name']}"
         
         return False, "无法删除图片,请检查文件权限"
+
+class RenameImageDialog(MessageBoxBase):
+        """重命名图片对话框"""
+        
+        def __init__(self, current_name: str, parent=None):
+            super().__init__(parent)
+            self.titleLabel = SubtitleLabel('重命名图片')
+            self.nameLineEdit = LineEdit()
+            
+            self.nameLineEdit.setPlaceholderText('请输入新的显示名称')
+            self.nameLineEdit.setText(current_name)
+            self.nameLineEdit.setClearButtonEnabled(True)
+            
+            # 将组件添加到布局中
+            self.viewLayout.addWidget(self.titleLabel)
+            self.viewLayout.addWidget(self.nameLineEdit)
+            
+            # 设置对话框的最小宽度
+            self.widget.setMinimumWidth(350)
+        
+        def validate(self):
+            """验证输入是否为空"""
+            return bool(self.nameLineEdit.text().strip())
