@@ -8,6 +8,7 @@ from core.config_manager import ConfigManager
 from core.image_manager import ImageManager
 from core.replacer import ImageReplacer
 from utils.path_detector import PathDetector
+from utils.admin_helper import is_admin, request_admin_and_exit
 
 from .widgets import PathInfoCard, ImageListWidget, ActionBar
 from .dialogs import MessageHelper, PathHistoryDialog
@@ -23,6 +24,7 @@ class MainWindow(FluentWindow):
         self._init_ui()
         self._connect_signals()
         self._load_initial_data()
+        self._check_admin_status()
     
     def _init_window(self):
         """初始化窗口属性"""
@@ -72,7 +74,7 @@ class MainWindow(FluentWindow):
         
         # 图片列表信号
         self.image_list.imageSelected.connect(self._on_image_selected)
-        self.image_list.imagesDropped.connect(self._on_images_dropped)  # 新增
+        self.image_list.imagesDropped.connect(self._on_images_dropped)
         
         # 操作栏信号
         self.action_bar.importClicked.connect(self.import_image)
@@ -85,6 +87,13 @@ class MainWindow(FluentWindow):
         """加载初始数据"""
         self.load_images()
         self.load_and_validate_target_path()
+    
+    def _check_admin_status(self):
+        """检查管理员权限状态"""
+        if is_admin():
+            # 如果是管理员权限，在标题栏显示提示
+            current_title = self.windowTitle()
+            self.setWindowTitle(f"{current_title} [管理员]")
     
     def _on_image_selected(self, image_info: dict):
         """图片选中时的处理
@@ -182,6 +191,59 @@ class MainWindow(FluentWindow):
     def hide_progress(self):
         """隐藏进度"""
         self.progress_bar.setVisible(False)
+    
+    def handle_permission_error(self, error_message: str):
+        """处理权限错误
+        
+        Args:
+            error_message: 错误消息
+        """
+        if is_admin():
+            # 已经是管理员权限了，但还是权限不足
+            QMessageBox.critical(
+                self,
+                "权限不足",
+                f"{error_message}\n\n"
+                "即使以管理员身份运行，仍然无法访问该文件。\n\n"
+                "可能的原因：\n"
+                "• 文件正在被希沃白板或其他程序使用\n"
+                "• 文件被系统或杀毒软件保护\n"
+                "• 磁盘权限配置问题\n\n"
+                "建议：\n"
+                "• 完全关闭希沃白板后重试\n"
+                "• 检查文件是否被杀毒软件锁定\n"
+                "• 尝试重启电脑后再操作"
+            )
+        else:
+            # 不是管理员权限，询问是否以管理员身份重启
+            reply = QMessageBox.question(
+                self,
+                "需要管理员权限",
+                f"{error_message}\n\n"
+                "此操作需要管理员权限才能完成。\n\n"
+                "是否以管理员身份重新启动程序？\n\n"
+                "注意：程序将会关闭并重新启动。",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                # 请求管理员权限并重启
+                if request_admin_and_exit():
+                    # 成功请求，当前程序会退出
+                    # 不需要额外操作，程序会自动关闭
+                    pass
+                else:
+                    # 请求失败
+                    QMessageBox.warning(
+                        self,
+                        "启动失败",
+                        "无法以管理员身份重新启动程序。\n\n"
+                        "请尝试以下方法：\n"
+                        "• 右键点击程序图标\n"
+                        "• 选择以管理员身份运行\n\n"
+                        "或者关闭希沃白板后再试。"
+                    )
     
     def load_and_validate_target_path(self):
         """加载并验证目标路径"""
@@ -437,7 +499,7 @@ class MainWindow(FluentWindow):
         
         self.show_progress("正在替换...")
         
-        success, msg = self.replacer.replace_image(
+        success, msg, is_permission_error = self.replacer.replace_image(
             image_info["path"],
             self.target_path
         )
@@ -451,7 +513,12 @@ class MainWindow(FluentWindow):
                 3000
             )
         else:
-            MessageHelper.show_error(self, "替换失败", msg)
+            if is_permission_error:
+                # 权限问题，提示用户以管理员身份运行
+                self.handle_permission_error(msg)
+            else:
+                # 其他错误
+                MessageHelper.show_error(self, "替换失败", msg)
     
     def restore_from_backup(self):
         """从备份还原"""
@@ -461,11 +528,16 @@ class MainWindow(FluentWindow):
         
         self.show_progress("正在还原...")
         
-        success, msg = self.replacer.restore_backup(self.target_path)
+        success, msg, is_permission_error = self.replacer.restore_backup(self.target_path)
         
         self.hide_progress()
         
         if success:
             MessageHelper.show_success(self, "已从备份还原启动图片", 3000)
         else:
-            MessageHelper.show_error(self, "还原失败", msg)
+            if is_permission_error:
+                # 权限问题，提示用户以管理员身份运行
+                self.handle_permission_error(msg)
+            else:
+                # 其他错误
+                MessageHelper.show_error(self, "还原失败", msg)

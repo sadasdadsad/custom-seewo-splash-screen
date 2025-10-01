@@ -1,3 +1,5 @@
+# file: core/replacer.py
+
 import os
 import shutil
 import stat
@@ -26,11 +28,11 @@ class ImageReplacer:
     def backup_original(self, target_path):
         """备份原始文件"""
         if not os.path.exists(target_path):
-            return False, "目标文件不存在"
+            return False, "目标文件不存在", False
         
         # 检查是否已有备份
         if self.has_backup(target_path):
-            return True, "检测到已有备份，跳过备份步骤"
+            return True, "检测到已有备份，跳过备份步骤", False
         
         try:
             # 生成备份文件名
@@ -42,9 +44,11 @@ class ImageReplacer:
             
             # 执行备份
             shutil.copy2(target_path, backup_path)
-            return True, f"已备份原始文件: {backup_filename}"
+            return True, f"已备份原始文件: {backup_filename}", False
+        except PermissionError:
+            return False, "备份失败: 权限不足", True
         except Exception as e:
-            return False, f"备份失败: {str(e)}"
+            return False, f"备份失败: {str(e)}", False
     
     def remove_readonly(self, filepath):
         """移除文件只读属性"""
@@ -64,19 +68,49 @@ class ImageReplacer:
         except:
             return False
     
+    def check_write_permission(self, filepath):
+        """
+        检查文件写权限
+        
+        Returns:
+            tuple: (有权限, 错误信息, 是否为权限问题)
+        """
+        if not os.path.exists(filepath):
+            return False, "文件不存在", False
+        
+        try:
+            # 尝试以追加模式打开文件
+            with open(filepath, 'a'):
+                pass
+            return True, "", False
+        except PermissionError:
+            return False, "没有写入权限", True
+        except Exception as e:
+            return False, f"无法访问文件: {str(e)}", False
+    
     def replace_image(self, source_path, target_path):
-        """替换图片"""
+        """
+        替换图片
+        
+        Returns:
+            tuple: (成功与否, 消息, 是否为权限问题)
+        """
         if not os.path.exists(source_path):
-            return False, "源图片不存在"
+            return False, "源图片不存在", False
         
         if not os.path.exists(target_path):
-            return False, "目标路径不存在"
+            return False, "目标路径不存在", False
+        
+        # 先检查写权限
+        has_permission, perm_msg, is_permission_error = self.check_write_permission(target_path)
+        if not has_permission and is_permission_error:
+            return False, "权限不足，无法写入文件", True
         
         try:
             # 备份原始文件
-            backup_success, backup_msg = self.backup_original(target_path)
+            backup_success, backup_msg, backup_perm_error = self.backup_original(target_path)
             if not backup_success and not self.has_backup(target_path):
-                return False, backup_msg
+                return False, backup_msg, backup_perm_error
             
             # 移除只读属性
             was_readonly = False
@@ -84,9 +118,10 @@ class ImageReplacer:
                 # 检查是否为只读
                 if not os.access(target_path, os.W_OK):
                     was_readonly = True
-                    self.remove_readonly(target_path)
-            except:
-                pass
+                    if not self.remove_readonly(target_path):
+                        return False, "无法移除只读属性", True
+            except Exception as e:
+                return False, f"检查文件属性失败: {str(e)}", False
             
             # 执行替换
             shutil.copy2(source_path, target_path)
@@ -95,16 +130,25 @@ class ImageReplacer:
             if was_readonly:
                 self.set_readonly(target_path)
             
-            return True, f"替换成功 | {backup_msg}"
-        except PermissionError:
-            return False, "文件被占用，无法替换"
+            return True, f"替换成功 | {backup_msg}", False
+        except PermissionError as e:
+            return False, f"权限不足: {str(e)}", True
+        except OSError as e:
+            if e.errno == 13:  # Permission denied
+                return False, "权限不足，无法替换文件", True
+            return False, f"替换失败: {str(e)}", False
         except Exception as e:
-            return False, f"替换失败: {str(e)}"
+            return False, f"替换失败: {str(e)}", False
     
     def restore_backup(self, target_path):
-        """从备份还原"""
+        """
+        从备份还原
+        
+        Returns:
+            tuple: (成功与否, 消息, 是否为权限问题)
+        """
         if not os.path.exists(target_path):
-            return False, "目标路径不存在"
+            return False, "目标路径不存在", False
         
         # 查找备份文件
         base_name = os.path.basename(target_path)
@@ -117,9 +161,14 @@ class ImageReplacer:
                 break
         
         if not backup_file:
-            return False, "未找到备份文件"
+            return False, "未找到备份文件", False
         
         backup_path = os.path.join(self.backup_dir, backup_file)
+        
+        # 先检查写权限
+        has_permission, perm_msg, is_permission_error = self.check_write_permission(target_path)
+        if not has_permission and is_permission_error:
+            return False, "权限不足，无法写入文件", True
         
         try:
             # 移除只读属性
@@ -127,9 +176,10 @@ class ImageReplacer:
             try:
                 if not os.access(target_path, os.W_OK):
                     was_readonly = True
-                    self.remove_readonly(target_path)
-            except:
-                pass
+                    if not self.remove_readonly(target_path):
+                        return False, "无法移除只读属性", True
+            except Exception as e:
+                return False, f"检查文件属性失败: {str(e)}", False
             
             # 执行还原
             shutil.copy2(backup_path, target_path)
@@ -138,8 +188,12 @@ class ImageReplacer:
             if was_readonly:
                 self.set_readonly(target_path)
             
-            return True, "已还原备份"
-        except PermissionError:
-            return False, "文件被占用，无法还原"
+            return True, "已还原备份", False
+        except PermissionError as e:
+            return False, f"权限不足: {str(e)}", True
+        except OSError as e:
+            if e.errno == 13:  # Permission denied
+                return False, "权限不足，无法还原文件", True
+            return False, f"还原失败: {str(e)}", False
         except Exception as e:
-            return False, f"还原失败: {str(e)}"
+            return False, f"还原失败: {str(e)}", False
