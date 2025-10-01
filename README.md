@@ -1,4 +1,4 @@
-# SeewoSplash - 希沃白板启动图片自定义工具
+# SeewoSplash - 希沃白板启动图自定义工具
 
 <div align="center">
 
@@ -7,7 +7,7 @@
 ![Python](https://img.shields.io/badge/python-3.8+-brightgreen.svg)
 ![PyQt6](https://img.shields.io/badge/PyQt-6-green.svg)
 
-一个用于自定义希沃白板启动画面的简单工具
+一个用于自定义希沃白板启动图的简单工具
 
 [功能特性](#功能特性) • [安装使用](#安装使用) • [构建](#构建) • [常见问题](#常见问题) • [许可证](#许可证)
 
@@ -17,11 +17,11 @@
 
 ## 简介
 
-SeewoSplash 是一个 Fluent 风格的图形化工具，允许你自定义希沃白板的启动画面。告别单调的默认启动图片，让你的希沃白板展现个性！
+SeewoSplash 是一个 Fluent 风格的图形化工具，允许你自定义希沃白板的启动图。告别单调的默认启动图，让你的希沃白板展现个性！
 
 ### 功能特性
 
-- 🎨 **预设图片** - 内置启动图片
+- 🎨 **预设图片** - 内置启动图
 - 📁 **自定图片** - 支持导入自己的 PNG 图片
 - 🚀 **拖拽操作** - 支持拖拽快速添加图片
 - 🔍 **路径检测** - 检测希沃白板安装路径，支持所有新旧版（已在 `5.1.12.62976` ~ `5.2.4.9158` 测试支持）
@@ -48,7 +48,7 @@ SeewoSplash 是一个 Fluent 风格的图形化工具，允许你自定义希沃
 
 #### 环境要求
 
-- Python 3.8 或更高版本
+- Python 3.8 +
 - Windows 操作系统
 
 #### 安装步骤
@@ -103,7 +103,7 @@ python build.py
 
 ### 还原原始图片
 
-如果想恢复希沃白板的原始启动图片：
+如果想恢复希沃白板的原始启动图：
 
 1. 点击"从备份还原"按钮
 2. 程序会自动从备份恢复原始图片
@@ -114,31 +114,36 @@ python build.py
 custom-seewo-splash-screen/
 ├── main.py                      # 程序入口
 ├── requirements.txt             # 依赖列表
-├── build.py                    # 构建脚本
-├── assets/                     # 资源文件
-│   ├── icon.ico               # 程序图标
-│   └── preset/                # 预设启动图片
-├── core/                       # 核心功能模块
-│   ├── app_info.py            # 应用信息管理
-│   ├── config_manager.py      # 配置管理
-│   ├── image_manager.py       # 图片管理
-│   └── replacer.py            # 图片替换
-├── ui/                         # 用户界面
+├── build.py                     # 构建脚本
+├── assets/                      # 资源文件
+│   ├── icon.ico                 # 程序图标
+│   └── preset/                  # 预设启动图
+├── core/                        # 核心功能模块
+│   ├── app_info.py              # 应用信息管理
+│   ├── config_manager.py        # 配置管理
+│   ├── image_manager.py         # 图片管理
+│   └── replacer.py              # 图片替换
+├── ui/                          # 用户界面
 │   ├── __init__.py
-│   ├── main_window.py         # 主窗口
-│   ├── widgets/               # UI组件
+│   ├── main_window.py               # 主窗口
+│   ├── controllers/                 # 控制器层
 │   │   ├── __init__.py
-│   │   ├── path_card.py       # 路径信息卡片
-│   │   ├── image_list.py      # 图片列表组件
-│   │   └── action_bar.py      # 操作按钮栏
-│   └── dialogs/               # 对话框
+│   │   ├── path_controller.py       # 路径管理控制器
+│   │   ├── image_controller.py      # 图片操作控制器
+│   │   └── permission_controller.py # 权限处理控制器
+│   ├── widgets/                 # UI 组件
+│   │   ├── __init__.py
+│   │   ├── path_card.py         # 路径信息卡片
+│   │   ├── image_list.py        # 图片列表组件
+│   │   └── action_bar.py        # 操作按钮栏
+│   └── dialogs/                     # 对话框
 │       ├── __init__.py
-│       ├── message_helper.py  # 消息提示辅助类
-│       └── path_history_dialog.py  # 历史路径对话框
-└── utils/                      # 工具模块
-    ├── admin_helper.py        # 管理员权限
-    ├── resource_path.py       # 资源路径管理
-    └── path_detector.py       # 路径检测
+│       ├── message_helper.py        # 消息提示辅助类
+│       └── path_history_dialog.py   # 历史路径对话框
+└── utils/                       # 工具模块
+    ├── admin_helper.py          # 管理员权限管理
+    ├── resource_path.py         # 资源路径管理
+    └── path_detector.py         # 路径检测
 ```
 
 ## 常见问题
