@@ -1,9 +1,8 @@
 import os
 import glob
 import re
-from qfluentwidgets import MessageBox, MessageBoxBase, SubtitleLabel, BodyLabel
+from qfluentwidgets import MessageBox
 from PyQt6.QtWidgets import QFileDialog
-from PyQt6.QtCore import Qt
 
 
 class PathDetector:
