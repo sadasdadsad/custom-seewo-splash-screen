@@ -1,10 +1,10 @@
 """主窗口 - 只负责UI组装和事件分发"""
 
 import os
-from PyQt6.QtWidgets import QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QVBoxLayout, QWidget, QLabel
 from PyQt6.QtGui import QIcon
-from PyQt6.QtCore import QTimer
-from qfluentwidgets import FluentWindow, FluentIcon as FIF, ProgressBar, Theme, setTheme
+from PyQt6.QtCore import QTimer, Qt
+from qfluentwidgets import FluentWindow, FluentIcon as FIF, ProgressBar, Theme, setTheme, SettingCardGroup, SwitchSettingCard, PrimaryPushSettingCard, OptionsSettingCard, qconfig, OptionsConfigItem
 
 from core.config_manager import ConfigManager
 from core.image_manager import ImageManager
@@ -25,6 +25,7 @@ class MainWindow(FluentWindow):
         self._init_managers()
         self._init_controllers()
         self._init_ui()
+        self._init_settings_interface()
         self._connect_signals()
         
         self.show()
@@ -76,6 +77,76 @@ class MainWindow(FluentWindow):
         layout.addWidget(self.action_bar)
         layout.addWidget(self.progress_bar)
     
+    def _init_settings_interface(self):
+        """初始化设置界面"""
+        # 创建设置界面 - 使用普通QWidget而不是ScrollArea以保持一致性
+        self.settingsInterface = QWidget()
+        self.settingsInterface.setObjectName("settingsInterface")
+        
+        # 创建布局
+        settingsLayout = QVBoxLayout(self.settingsInterface)
+        settingsLayout.setContentsMargins(20, 20, 20, 20)
+        settingsLayout.setSpacing(15)
+        
+        # 标题
+        titleLabel = QLabel("设置")
+        titleLabel.setStyleSheet("font-size: 28px; font-weight: bold;")
+        settingsLayout.addWidget(titleLabel)
+        
+        # 创建设置卡片组
+        self.appearanceGroup = SettingCardGroup("外观设置", self.settingsInterface)
+        
+        # 主题切换卡片
+        self.themeCard = SwitchSettingCard(
+            FIF.BRUSH,
+            "深色模式",
+            "切换应用程序的主题颜色",
+            parent=self.appearanceGroup
+        )
+        self.themeCard.checkedChanged.connect(self._on_theme_changed)
+        self.appearanceGroup.addSettingCard(self.themeCard)
+        
+        # 行为设置组
+        self.behaviorGroup = SettingCardGroup("行为设置", self.settingsInterface)
+        
+        # 自动检测路径卡片
+        self.autoDetectCard = SwitchSettingCard(
+            FIF.SEARCH,
+            "启动时自动检测路径",
+            "应用启动时自动检测希沃启动图片路径",
+            parent=self.behaviorGroup
+        )
+        self.behaviorGroup.addSettingCard(self.autoDetectCard)
+        
+        # 关于设置组
+        self.aboutGroup = SettingCardGroup("关于", self.settingsInterface)
+        
+        # 关于卡片
+        self.aboutCard = PrimaryPushSettingCard(
+            "查看",
+            FIF.INFO,
+            "关于 SeewoSplash",
+            "版本 1.0.0",
+            self.aboutGroup
+        )
+        self.aboutCard.clicked.connect(self._on_about_clicked)
+        self.aboutGroup.addSettingCard(self.aboutCard)
+        
+        # 添加到布局
+        settingsLayout.addWidget(self.appearanceGroup)
+        settingsLayout.addWidget(self.behaviorGroup)
+        settingsLayout.addWidget(self.aboutGroup)
+        settingsLayout.addStretch(1)  # 添加弹性空间，让内容顶部对齐
+        
+        # 添加到导航栏底部
+        from qfluentwidgets import NavigationItemPosition
+        self.addSubInterface(
+            self.settingsInterface,
+            FIF.SETTING,
+            '设置',
+            position=NavigationItemPosition.BOTTOM
+        )
+
     def _connect_signals(self):
         """连接信号槽"""
         self.path_card.detect_button.clicked.connect(self._on_detect_path)
@@ -103,6 +174,43 @@ class MainWindow(FluentWindow):
         if is_admin():
             current_title = self.windowTitle()
             self.setWindowTitle(f"{current_title} [管理员]")
+    
+    # === 设置页面事件处理 ===
+    
+    def _on_theme_changed(self, item: OptionsConfigItem):
+        """主题切换事件"""
+        theme_map = {
+            "浅色": Theme.LIGHT,
+            "深色": Theme.DARK,
+            "跟随系统设置": Theme.AUTO
+        }
+        
+        selected_theme = theme_map.get(item.text, Theme.AUTO)
+        setTheme(selected_theme)
+        
+        MessageHelper.show_success(
+            self,
+            f"已切换到{item.text}模式",
+            2000
+        )
+    
+    def _on_about_clicked(self):
+        """关于按钮点击事件"""
+        from qfluentwidgets import MessageBox
+        
+        about_text = """SeewoSplash - 希沃启动图片管理工具
+        
+版本：1.0.0
+作者：Your Name
+
+这是一个用于管理希沃设备启动图片的工具，
+支持导入、替换、备份和还原启动图片。"""
+        
+        MessageBox(
+            "关于 SeewoSplash",
+            about_text,
+            self
+        ).exec()
     
     # === 事件处理方法 (简洁的分发逻辑) ===
     
