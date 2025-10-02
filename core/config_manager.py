@@ -1,3 +1,5 @@
+# file core\config_manager.py
+
 import json
 import os
 from utils.resource_path import get_app_data_path
@@ -25,6 +27,8 @@ class ConfigManager:
     def save(self):
         """保存配置"""
         try:
+            # 确保目录存在
+            os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
             with open(self.config_file, 'w', encoding='utf-8') as f:
                 json.dump(self.config, f, ensure_ascii=False, indent=2)
             return True
@@ -39,7 +43,8 @@ class ConfigManager:
             "target_path_history": [],
             "last_selected_image": "",
             "custom_images": [],
-            "auto_detect_on_startup": True
+            "auto_detect_on_startup": True,
+            "theme_mode": "auto"  # 主题模式: light, dark, auto
         }
     
     def get_target_path(self):
@@ -90,6 +95,22 @@ class ConfigManager:
         """设置启动时是否自动检测"""
         self.config["auto_detect_on_startup"] = enabled
         self.save()
+    
+    def get_theme_mode(self):
+        """获取主题模式"""
+        return self.config.get("theme_mode", "auto")
+    
+    def set_theme_mode(self, theme_mode):
+        """设置主题模式
+        
+        Args:
+            theme_mode (str): 主题模式，可选值: light, dark, auto
+        """
+        if theme_mode in ["light", "dark", "auto"]:
+            self.config["theme_mode"] = theme_mode
+            self.save()
+        else:
+            print(f"无效的主题模式: {theme_mode}")
     
     def get_last_selected_image(self):
         """获取最后选中的图片"""

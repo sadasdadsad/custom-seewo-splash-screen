@@ -27,6 +27,13 @@ class MainWindow(FluentWindow):
         self._init_ui()
         self._init_settings_interface()
         self._connect_signals()
+
+        # 初始化配置管理器
+        self.config_manager = ConfigManager()
+        # 应用保存的主题设置
+        self._apply_saved_theme()
+        # 绑定设置卡片到配置
+        self._bind_settings_to_config()
         
         self.show()
         
@@ -182,25 +189,28 @@ class MainWindow(FluentWindow):
     
     def _on_theme_changed(self, item):
         """主题切换事件"""
-        # item.value直接返回Theme枚举值，不需要通过索引转换
         selected_theme = item.value
         
-        # 根据主题值获取对应的名称用于显示
-        theme_names = {
-            Theme.LIGHT: "浅色",
-            Theme.DARK: "深色", 
-            Theme.AUTO: "跟随系统设置"
+        # 根据主题值获取对应的名称和配置值
+        theme_config_map = {
+            Theme.LIGHT: ("浅色", "light"),
+            Theme.DARK: ("深色", "dark"), 
+            Theme.AUTO: ("跟随系统设置", "auto")
         }
         
-        theme_name = theme_names.get(selected_theme, "未知")
+        theme_name, config_value = theme_config_map.get(selected_theme, ("未知", "auto"))
         
+        # 应用主题
         setTheme(selected_theme)
+        
+        # 保存到配置文件
+        self.config_manager.set_theme_mode(config_value)
+        
         MessageHelper.show_success(
             self,
             f"已切换到{theme_name}模式",
             2000
         )
-
     
     def _on_about_clicked(self):
         """关于按钮点击事件"""
@@ -365,6 +375,36 @@ class MainWindow(FluentWindow):
             self.permission_ctrl.handle_permission_error(self, msg)
         else:
             MessageHelper.show_error(self, "还原失败", msg)
+
+    def _apply_saved_theme(self):
+        """应用保存的主题设置"""
+        theme_mode = self.config_manager.get_theme_mode()
+        theme_map = {
+            "light": Theme.LIGHT,
+            "dark": Theme.DARK,
+            "auto": Theme.AUTO
+        }
+        saved_theme = theme_map.get(theme_mode, Theme.AUTO)
+        setTheme(saved_theme)
+
+    def _bind_settings_to_config(self):
+        """绑定设置卡片到配置文件"""
+        # 绑定自动检测设置
+        auto_detect = self.config_manager.get_auto_detect_on_startup()
+        self.autoDetectCard.setChecked(auto_detect)
+        self.autoDetectCard.checkedChanged.connect(
+            self.config_manager.set_auto_detect_on_startup
+        )
+        
+        # 设置主题卡片的初始值
+        theme_mode = self.config_manager.get_theme_mode()
+        theme_index_map = {
+            "light": 0,
+            "dark": 1, 
+            "auto": 2
+        }
+        initial_index = theme_index_map.get(theme_mode, 2)
+        # 注意：这里可能需要根据OptionsSettingCard的具体API来设置初始值
     
     # === 辅助方法 ===
     
