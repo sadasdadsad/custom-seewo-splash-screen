@@ -15,22 +15,43 @@ class ImageController:
         self.config_manager = config_manager
         self.image_manager = image_manager
     
-    def import_single_image(self) -> tuple[bool, str, str]:
-        """导入单个图片
+    def import_single_image(self, allow_multiple: bool = False) -> tuple[bool, str, str]:
+        """导入图片
         
+        Args:
+            allow_multiple: 是否允许选择多个文件
+            
         Returns:
             (成功标志, 消息, 文件路径)
         """
         file_dialog = QFileDialog(self.parent, "选择PNG图片", os.path.expanduser("~"))
         file_dialog.setNameFilter("PNG图片 (*.png)")
-        file_dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
+        
+        # 根据参数设置文件选择模式
+        if allow_multiple:
+            file_dialog.setFileMode(QFileDialog.FileMode.ExistingFiles)
+        else:
+            file_dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
         
         if file_dialog.exec():
             selected_files = file_dialog.selectedFiles()
             if selected_files:
-                source_path = selected_files[0]
-                success, msg = self.image_manager.import_image(source_path)
-                return success, msg, source_path
+                if allow_multiple:
+                    # 使用现有的批量导入逻辑
+                    success_count, failed_files = self.import_multiple_images(selected_files)
+                    if success_count > 0:
+                        if failed_files:
+                            msg = f"成功导入 {success_count} 个图片，{len(failed_files)} 个失败"
+                        else:
+                            msg = f"成功导入 {success_count} 个图片"
+                        return True, msg, selected_files[0]  # 返回第一个文件路径保持接口一致
+                    else:
+                        return False, "所有图片导入失败", ""
+                else:
+                    # 原有的单个导入逻辑
+                    source_path = selected_files[0]
+                    success, msg = self.image_manager.import_image(source_path)
+                    return success, msg, source_path
         
         return False, "", ""
     

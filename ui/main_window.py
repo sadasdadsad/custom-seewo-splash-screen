@@ -284,7 +284,7 @@ class MainWindow(FluentWindow):
     def _on_import_image(self):
         """导入图片事件"""
         self.show_progress("正在导入...")
-        success, msg, source_path = self.image_ctrl.import_single_image()
+        success, msg, source_path = self.image_ctrl.import_single_image(allow_multiple=True)
         self.hide_progress()
         
         if success:
