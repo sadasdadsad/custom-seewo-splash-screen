@@ -40,7 +40,7 @@ SeewoSplash 是一个 Fluent 风格的图形化工具，允许你自定义希沃
 
 ### 方式一：下载发行版（推荐）
 
-1. 前往 [Releases](https://github.com/fengyec2/custom-seewo-splash-screen/releases) 页面
+1. 前往 [Releases](https://github.com/fengyec2/custom-seewo-splash-screen/releases) 页面获取正式版（或前往 [Actions](https://github.com/fengyec2/custom-seewo-splash-screen/actions) 页面获取测试版）
 2. 下载最新版本的 `SeewoSplash.zip`
 3. 解压后运行 `SeewoSplash.exe` 即可使用
 
