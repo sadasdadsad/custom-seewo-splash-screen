@@ -1,6 +1,6 @@
 """主窗口 - 只负责UI组装和事件分发"""
 
-import os
+import os, webbrowser
 from PyQt6.QtWidgets import QVBoxLayout, QWidget, QLabel
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import QTimer, Qt
@@ -9,6 +9,7 @@ from qfluentwidgets import FluentWindow, FluentIcon as FIF, ProgressBar, Theme, 
 from core.config_manager import ConfigManager
 from core.image_manager import ImageManager
 from core.replacer import ImageReplacer
+from core.app_info import get_version, get_app_name, get_repository
 from utils.admin_helper import is_admin
 
 from .widgets import PathInfoCard, ImageListWidget, ActionBar
@@ -133,10 +134,10 @@ class MainWindow(FluentWindow):
         
         # 关于卡片
         self.aboutCard = PrimaryPushSettingCard(
-            "查看",
-            FIF.INFO,
-            "关于 SeewoSplash",
-            "版本 1.0.0",
+            "访问项目",
+            FIF.LINK,  # 或者 FIF.GLOBE
+            f"关于 {get_app_name()}",
+            f"版本 {get_version()}",
             self.aboutGroup
         )
         self.aboutCard.clicked.connect(self._on_about_clicked)
@@ -213,22 +214,8 @@ class MainWindow(FluentWindow):
         )
     
     def _on_about_clicked(self):
-        """关于按钮点击事件"""
-        from qfluentwidgets import MessageBox
-        
-        about_text = """SeewoSplash - 希沃启动图片管理工具
-        
-版本：1.0.0
-作者：Your Name
-
-这是一个用于管理希沃设备启动图片的工具，
-支持导入、替换、备份和还原启动图片。"""
-        
-        MessageBox(
-            "关于 SeewoSplash",
-            about_text,
-            self
-        ).exec()
+        """关于按钮点击事件 - 跳转到GitHub"""
+        webbrowser.open(get_repository())
     
     # === 事件处理方法 (简洁的分发逻辑) ===
     

@@ -1,3 +1,5 @@
+# file core\app_info.py
+
 """应用信息配置
 
 此文件包含应用的元信息，如版本号、作者等。
@@ -36,6 +38,9 @@ def get_app_name():
     """获取应用名称"""
     return __app_name__
 
+def get_repository():
+    """获取仓库名称"""
+    return __repository__
 
 def get_full_info():
     """获取完整的应用信息"""
