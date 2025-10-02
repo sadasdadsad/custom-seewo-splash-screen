@@ -96,14 +96,17 @@ class MainWindow(FluentWindow):
         # 创建设置卡片组
         self.appearanceGroup = SettingCardGroup("外观设置", self.settingsInterface)
         
-        # 主题切换卡片
-        self.themeCard = SwitchSettingCard(
+        # 主题切换卡片 - 使用OptionsSettingCard
+        from qfluentwidgets import OptionsSettingCard, qconfig
+        self.themeCard = OptionsSettingCard(
+            qconfig.themeMode,
             FIF.BRUSH,
-            "深色模式",
-            "切换应用程序的主题颜色",
+            "应用主题",
+            "调整你的应用外观",
+            texts=["浅色", "深色", "跟随系统设置"],
             parent=self.appearanceGroup
         )
-        self.themeCard.checkedChanged.connect(self._on_theme_changed)
+        self.themeCard.optionChanged.connect(self._on_theme_changed)
         self.appearanceGroup.addSettingCard(self.themeCard)
         
         # 行为设置组
@@ -177,22 +180,27 @@ class MainWindow(FluentWindow):
     
     # === 设置页面事件处理 ===
     
-    def _on_theme_changed(self, item: OptionsConfigItem):
+    def _on_theme_changed(self, item):
         """主题切换事件"""
-        theme_map = {
-            "浅色": Theme.LIGHT,
-            "深色": Theme.DARK,
-            "跟随系统设置": Theme.AUTO
+        # item.value直接返回Theme枚举值，不需要通过索引转换
+        selected_theme = item.value
+        
+        # 根据主题值获取对应的名称用于显示
+        theme_names = {
+            Theme.LIGHT: "浅色",
+            Theme.DARK: "深色", 
+            Theme.AUTO: "跟随系统设置"
         }
         
-        selected_theme = theme_map.get(item.text, Theme.AUTO)
-        setTheme(selected_theme)
+        theme_name = theme_names.get(selected_theme, "未知")
         
+        setTheme(selected_theme)
         MessageHelper.show_success(
             self,
-            f"已切换到{item.text}模式",
+            f"已切换到{theme_name}模式",
             2000
         )
+
     
     def _on_about_clicked(self):
         """关于按钮点击事件"""
