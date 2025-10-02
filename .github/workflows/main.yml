@@ -211,14 +211,14 @@ jobs:
       shell: powershell
       
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.build_output.outputs.zip_name }}
         path: ${{ steps.build_output.outputs.zip_path }}
         retention-days: 30
         
     - name: Upload application directory (for debugging)
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.version.outputs.app_name }}_debug
         path: dist/${{ steps.version.outputs.app_name }}/
