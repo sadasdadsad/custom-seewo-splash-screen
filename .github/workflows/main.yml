@@ -1,274 +1,57 @@
-name: Build Windows Application
+name: Build and Release
 
 on:
   push:
     branches: [ main, master ]
-    tags: [ 'v*' ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch:  # 允许手动触发
+  release:
+    types: [ created ]
 
 jobs:
-  build-windows:
+  build:
     runs-on: windows-latest
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v6
       with:
         python-version: '3.11'
+        cache: 'pip'
         
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~\AppData\Local\pip\Cache
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-          
-    - name: Cache PyInstaller build
-      uses: actions/cache@v3
+    - name: Cache build dependencies
+      uses: actions/cache@v4
       with:
         path: |
+          ~\AppData\Local\pip\Cache
           build
-          __pycache__
-          **/__pycache__
-        key: ${{ runner.os }}-pyinstaller-${{ hashFiles('**/*.py') }}
+        key: ${{ runner.os }}-build-${{ hashFiles('**/requirements.txt', '**/*.py') }}
         restore-keys: |
-          ${{ runner.os }}-pyinstaller-
-        
+          ${{ runner.os }}-build-
+          
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install PyQt6 pyinstaller
+        if (Test-Path requirements.txt) { pip install -r requirements.txt }
         
-    - name: Verify dependencies
-      run: |
-        python -c "import PyQt6; print(f'PyQt6 version: {PyQt6.QtCore.PYQT_VERSION_STR}')"
-        python -c "import PyInstaller; print(f'PyInstaller version: {PyInstaller.__version__}')"
-        pip list
-        
-    - name: Get version info
-      id: version
-      run: |
-        $version = python -c "from core.app_info import __version__; print(__version__)"
-        $app_name = python -c "from core.app_info import __app_name__; print(__app_name__)"
-        $author = python -c "from core.app_info import __author__; print(__author__)"
-        echo "version=$version" >> $env:GITHUB_OUTPUT
-        echo "app_name=$app_name" >> $env:GITHUB_OUTPUT
-        echo "author=$author" >> $env:GITHUB_OUTPUT
-        echo "Version: $version"
-        echo "App Name: $app_name"
-        echo "Author: $author"
-      shell: powershell
-      
-    - name: Check required files
-      run: |
-        echo "Checking required files..."
-        if (!(Test-Path "main.py")) { 
-          Write-Error "main.py not found"
-          exit 1 
-        }
-        if (!(Test-Path "core/app_info.py")) { 
-          Write-Error "core/app_info.py not found"
-          exit 1 
-        }
-        if (!(Test-Path "requirements.txt")) { 
-          Write-Error "requirements.txt not found"
-          exit 1 
-        }
-        if (!(Test-Path "build.py")) { 
-          Write-Error "build.py not found"
-          exit 1 
-        }
-        if (Test-Path "assets/icon.ico") { 
-          echo "✓ Icon file found"
-        } else { 
-          echo "⚠ Icon file not found, will use default"
-        }
-        if (Test-Path "assets/presets") { 
-          $presets = (Get-ChildItem "assets/presets" -Filter "*.png" -ErrorAction SilentlyContinue).Count
-          if ($presets -gt 0) {
-            echo "✓ Found $presets preset images"
-          } else {
-            echo "⚠ No preset images found"
-          }
-        } else { 
-          echo "⚠ Presets directory not found"
-        }
-        if (Test-Path "create_version_file.py") { 
-          echo "✓ Version file generator found"
-        } else { 
-          echo "⚠ create_version_file.py not found"
-        }
-      shell: powershell
-      
     - name: Build application
-      run: |
-        echo "Starting build process..."
-        echo "Working directory: $(Get-Location)"
-        echo "Python version: $(python --version)"
-        python build.py
-      shell: powershell
-      
-    - name: Verify build output and find zip file
-      id: build_output
-      run: |
-        $app_name = "${{ steps.version.outputs.app_name }}"
-        $version = "${{ steps.version.outputs.version }}"
-        $exe_path = "dist/$app_name/$app_name.exe"
-        $expected_zip = "dist/${app_name}_v${version}.zip"
-        
-        # 验证可执行文件
-        if (Test-Path $exe_path) {
-          $size = (Get-Item $exe_path).Length / 1MB
-          echo "✓ Executable built successfully: $exe_path"
-          echo "✓ Executable size: $([math]::Round($size, 2)) MB"
-          
-          # 检查关键目录结构
-          $internal_path = "dist/$app_name/_internal"
-          if (Test-Path $internal_path) {
-            echo "✓ _internal directory exists"
-            if (Test-Path "$internal_path/assets/presets") {
-              $preset_count = (Get-ChildItem "$internal_path/assets/presets" -Filter "*.png" -ErrorAction SilentlyContinue).Count
-              echo "✓ Presets copied: $preset_count files"
-            }
-          }
-          
-          # 验证必要目录
-          if (Test-Path "dist/$app_name/images/custom") {
-            echo "✓ Custom images directory created"
-          }
-          if (Test-Path "dist/$app_name/backup") {
-            echo "✓ Backup directory created"
-          }
-          
-        } else {
-          Write-Error "Build failed: executable not found at $exe_path"
-          # 显示实际的目录内容用于调试
-          if (Test-Path "dist") {
-            echo "Actual dist contents:"
-            Get-ChildItem "dist" -Recurse | Format-Table Name, Length, FullName
-          }
-          exit 1
-        }
-        
-        # 验证构建脚本生成的 zip 文件
-        if (Test-Path $expected_zip) {
-          $zip_size = (Get-Item $expected_zip).Length / 1MB
-          echo "✓ Release zip created by build script: $expected_zip"
-          echo "✓ Zip size: $([math]::Round($zip_size, 2)) MB"
-          echo "zip_path=$expected_zip" >> $env:GITHUB_OUTPUT
-          echo "zip_name=${app_name}_v${version}" >> $env:GITHUB_OUTPUT
-        } else {
-          # 查找是否有其他 zip 文件
-          $zip_files = Get-ChildItem "dist" -Filter "*.zip" -ErrorAction SilentlyContinue
-          if ($zip_files.Count -gt 0) {
-            echo "Found zip files:"
-            foreach ($zip in $zip_files) {
-              $zip_size = $zip.Length / 1MB
-              echo "  - $($zip.Name) ($([math]::Round($zip_size, 2)) MB)"
-            }
-            # 使用找到的第一个 zip 文件
-            $actual_zip = $zip_files[0].FullName
-            echo "zip_path=$actual_zip" >> $env:GITHUB_OUTPUT
-            echo "zip_name=$($zip_files[0].BaseName)" >> $env:GITHUB_OUTPUT
-          } else {
-            Write-Error "No zip file found. Expected: $expected_zip"
-            echo "dist directory contents:"
-            Get-ChildItem "dist" | Format-Table Name, Length
-            exit 1
-          }
-        }
-      shell: powershell
-      
-    - name: Test executable (basic check)
-      run: |
-        $app_name = "${{ steps.version.outputs.app_name }}"
-        $exe_path = "dist/$app_name/$app_name.exe"
-        
-        try {
-          $fileInfo = Get-Item $exe_path
-          echo "✓ File exists and accessible"
-          echo "  Created: $($fileInfo.CreationTime)"
-          echo "  Modified: $($fileInfo.LastWriteTime)"
-          echo "  Size: $([math]::Round($fileInfo.Length / 1MB, 2)) MB"
-          
-          # 检查文件是否为有效的可执行文件
-          $fileHeader = Get-Content $exe_path -Encoding Byte -TotalCount 2
-          if ($fileHeader[0] -eq 77 -and $fileHeader[1] -eq 90) {
-            echo "✓ Valid PE executable format"
-          } else {
-            Write-Warning "File may not be a valid executable"
-          }
-        } catch {
-        Write-Error "Failed to access executable: $_"
-          exit 1
-        }
-      shell: powershell
+      run: python build.py
       
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ steps.build_output.outputs.zip_name }}
-        path: ${{ steps.build_output.outputs.zip_path }}
+        name: windows-build
+        path: dist/
         retention-days: 30
         
-    - name: Upload application directory (for debugging)
+    - name: Upload release artifacts
+      if: github.event_name == 'release'
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ steps.version.outputs.app_name }}_debug
-        path: dist/${{ steps.version.outputs.app_name }}/
-        retention-days: 7
-        
-    - name: Upload build logs
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: build-logs
-        path: |
-          *.spec
-          build/
-          *.log
-        retention-days: 7
-        
-    # 如果是标签推送，创建 GitHub Pre-release
-    - name: Create Pre-release
-      if: startsWith(github.ref, 'refs/tags/v')
-      uses: softprops/action-gh-release@v1
-      with:
-        files: ${{ steps.build_output.outputs.zip_path }}
-        name: ${{ steps.version.outputs.app_name }} v${{ steps.version.outputs.version }} (Pre-release)
-        tag_name: ${{ github.ref_name }}
-        prerelease: true
-        draft: false
-        body: |
-          ## 🚀 预发布版本 v${{ steps.version.outputs.version }}
-          
-          > ⚠️ **这是一个预发布版本，可能包含未完全测试的功能，请谨慎在生产环境中使用。**
-          
-          ### 📋 版本信息
-          - **应用名称**: ${{ steps.version.outputs.app_name }}
-          - **版本**: v${{ steps.version.outputs.version }}
-          - **作者**: ${{ steps.version.outputs.author }}
-          - **构建时间**: ${{ github.event.head_commit.timestamp }}
-          - **提交哈希**: `${{ github.sha }}`
-          - **构建环境**: Windows (GitHub Actions)
-          
-          ### 📥 安装说明
-          1. 下载附件中的 `${{ steps.build_output.outputs.zip_name }}.zip`
-          2. 解压到任意目录（建议解压到不包含中文和空格的路径）
-          3. 进入解压后的文件夹
-          4. 双击运行 `${{ steps.version.outputs.app_name }}.exe`
-          
-          ### 💻 系统要求
-          - **操作系统**: Windows 10/11 (x64)
-          - **架构**: 64位系统
-          - **权限**: 无需管理员权限
-          - **依赖**: 无需额外安装 Python 或其他运行时
-          
-          ### 📂 文件说明
-          
+        name: release-build
+        path: dist/*.zip
+        retention-days: 90
