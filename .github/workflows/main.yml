@@ -205,7 +205,7 @@ jobs:
             Write-Warning "File may not be a valid executable"
           }
         } catch {
-       Write-Error "Failed to access executable: $_"
+        Write-Error "Failed to access executable: $_"
           exit 1
         }
       shell: powershell
