@@ -50,11 +50,10 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: windows-build
-        path: dist/
+        path: dist/SeewoSplash
         retention-days: 30
         
     - name: Upload release artifacts
-      if: github.event_name == 'release'
       uses: actions/upload-artifact@v4
       with:
         name: release-build
