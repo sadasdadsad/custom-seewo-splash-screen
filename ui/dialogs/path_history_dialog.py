@@ -1,5 +1,4 @@
 from qfluentwidgets import MessageBox, MessageBoxBase, SubtitleLabel, ComboBox, BodyLabel
-from PyQt6.QtWidgets import QVBoxLayout
 from utils.path_detector import PathDetector
 
 

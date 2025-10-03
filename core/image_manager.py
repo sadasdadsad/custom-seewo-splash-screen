@@ -1,4 +1,3 @@
-# import os
 import shutil
 from pathlib import Path
 from utils.resource_path import get_resource_path, get_app_data_path, ensure_dir

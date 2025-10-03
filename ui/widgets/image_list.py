@@ -1,6 +1,6 @@
 import os
-from PyQt6.QtCore import Qt, QSize, pyqtSignal
-from PyQt6.QtGui import QIcon, QPixmap, QDragEnterEvent, QDropEvent
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QPixmap, QDragEnterEvent, QDropEvent
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSizePolicy
 from qfluentwidgets import FlowLayout, CardWidget, SingleDirectionScrollArea
 

@@ -3,8 +3,8 @@
 import os, webbrowser
 from PyQt6.QtWidgets import QVBoxLayout, QWidget, QLabel
 from PyQt6.QtGui import QIcon
-from PyQt6.QtCore import QTimer, Qt
-from qfluentwidgets import FluentWindow, FluentIcon as FIF, ProgressBar, Theme, setTheme, SettingCardGroup, SwitchSettingCard, PrimaryPushSettingCard, OptionsSettingCard, qconfig, OptionsConfigItem
+from PyQt6.QtCore import QTimer
+from qfluentwidgets import FluentWindow, FluentIcon as FIF, ProgressBar, Theme, setTheme, SettingCardGroup, SwitchSettingCard, PrimaryPushSettingCard
 
 from core.config_manager import ConfigManager
 from core.image_manager import ImageManager

@@ -1,7 +1,5 @@
 import os
 import sys
-# from pathlib import Path
-
 
 def get_resource_path(relative_path):
     """
