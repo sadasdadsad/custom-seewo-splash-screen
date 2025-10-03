@@ -1,4 +1,3 @@
-import os
 import sys
 import shutil
 import subprocess
@@ -176,15 +175,34 @@ class Builder:
         for src, dst in data_files:
             pyinstaller_args.extend(["--add-data", f"{src}{separator}{dst}"])
         
-        # 隐藏不必要的导入
-        hidden_imports = [
-            "PyQt6.QtCore",
-            "PyQt6.QtGui",
-            "PyQt6.QtWidgets",
+        # 排除不必要的导入
+        excludes = [
+            "PyQt6.QtWebEngineCore",
+            "PyQt6.QtWebEngineWidgets", 
+            "PyQt6.QtWebEngine",
+            "PyQt6.QtMultimedia",
+            "PyQt6.QtMultimediaWidgets",
+            "PyQt6.QtNetwork",
+            "PyQt6.QtSql",
+            "PyQt6.QtTest",
+            "PyQt6.QtDBus",
+            "PyQt6.QtBluetooth",
+            "PyQt6.QtNfc",
+            "PyQt6.QtPositioning",
+            "PyQt6.QtWebChannel",
+            "PyQt6.QtWebSockets",
+            "PyQt6.Qt3DCore",
+            "PyQt6.Qt3DRender",
+            "PyQt6.Qt3DInput",
+            "PyQt6.Qt3DLogic",
+            "PyQt6.Qt3DAnimation",
+            "PyQt6.Qt3DExtras",
+            "pyinstaller",
+            "setuptools",
         ]
         
-        for module in hidden_imports:
-            pyinstaller_args.extend(["--hidden-import", module])
+        for module in excludes:
+            pyinstaller_args.extend(["--exclude-module", module])
         
         # 添加主脚本
         pyinstaller_args.append(str(self.main_script))
@@ -218,7 +236,7 @@ class Builder:
         # 创建必要的目录结构（在可执行文件目录外部）
         dirs_to_create = [
             exe_dir / "images" / "custom",  # 自定义图片目录
-            exe_dir / "backup",             # 备份目录
+            exe_dir / "backups",             # 备份目录
         ]
         
         for dir_path in dirs_to_create:
@@ -316,7 +334,7 @@ class Builder:
             print(f"│       └── presets/              # 预设图片（只读）")
             print(f"├── images/")
             print(f"│   └── custom/                   # 自定义图片（可写）")
-            print(f"├── backup/                       # 备份目录（可写）")
+            print(f"├── backups/                       # 备份目录（可写）")
             print(f"└── config.json                   # 配置文件（运行后生成）")
             
             print(f"\n分发说明:")
