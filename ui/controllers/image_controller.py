@@ -1,10 +1,11 @@
 """图片操作控制器 - 处理所有图片相关的业务逻辑"""
 
 import os
-from PyQt6.QtWidgets import QWidget, QFileDialog, QInputDialog
+from PyQt6.QtWidgets import QWidget, QFileDialog
 from core.config_manager import ConfigManager
 from core.image_manager import ImageManager
 from qfluentwidgets import MessageBoxBase, SubtitleLabel, LineEdit
+from ui.dialogs.message_helper import MessageHelper
 
 class ImageController:
     """图片操作控制器"""
@@ -94,17 +95,22 @@ class ImageController:
         if dialog.exec():
             new_name = dialog.nameLineEdit.text().strip()
             
-            success, msg = self.image_manager.rename_custom_image(
+            success, msg, new_filename = self.image_manager.rename_custom_image(
                 image_info["filename"],
                 new_name
             )
+            
             if success:
+                # 更新配置
                 self.config_manager.update_custom_image_name(
                     image_info["filename"],
-                    new_name
+                    new_name,
+                    new_filename
                 )
                 return True, f"已重命名为: {new_name}"
-            return False, msg
+            else:
+                MessageHelper.show_error(self.parent, "重命名失败", msg)
+                return False, msg
         
         return False, ""
     

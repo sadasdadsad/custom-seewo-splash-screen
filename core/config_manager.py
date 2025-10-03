@@ -141,11 +141,12 @@ class ConfigManager:
             ]
             self.save()
     
-    def update_custom_image_name(self, old_filename, new_display_name):
-        """更新自定义图片显示名称"""
+    def update_custom_image_name(self, old_filename, new_display_name, new_filename):
+        """更新自定义图片信息"""
         if "custom_images" in self.config:
             for img in self.config["custom_images"]:
                 if img.get("filename") == old_filename:
                     img["display_name"] = new_display_name
+                    img["filename"] = new_filename
                     break
             self.save()

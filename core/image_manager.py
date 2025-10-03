@@ -153,24 +153,37 @@ class ImageManager:
     
     def rename_custom_image(self, old_filename, new_display_name):
         """
-        重命名自定义图片（只改显示名称，不改文件名）
+        重命名自定义图片（同时修改文件名和显示名称）
         
         Args:
             old_filename: 原文件名
             new_display_name: 新的显示名称
         
         Returns:
-            (success, message)
+            (success, message, new_filename)
         """
         try:
-            file_path = self.custom_dir / old_filename
-            if not file_path.exists():
-                return False, "文件不存在"
+            old_file_path = self.custom_dir / old_filename
+            if not old_file_path.exists():
+                return False, "文件不存在", old_filename
             
-            # 更新配置中的显示名称
-            self.config_manager.update_custom_image_name(old_filename, new_display_name)
+            # 获取原文件扩展名
+            old_extension = old_file_path.suffix
             
-            return True, "重命名成功"
+            # 构建新文件名（显示名称 + 原扩展名）
+            new_filename = new_display_name + old_extension
+            new_file_path = self.custom_dir / new_filename
+            
+            # 检查文件名冲突
+            if new_file_path.exists() and new_filename != old_filename:
+                return False, f"文件名已存在: {new_filename}", old_filename
+            
+            # 重命名文件
+            if new_filename != old_filename:
+                old_file_path.rename(new_file_path)
+            
+            return True, "重命名成功", new_filename
             
         except Exception as e:
-            return False, f"重命名失败: {str(e)}"
+            return False, f"重命名失败: {str(e)}", old_filename
+
