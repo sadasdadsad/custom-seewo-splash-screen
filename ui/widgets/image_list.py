@@ -171,8 +171,8 @@ class ImageListWidget(QWidget):
         main_layout.addWidget(self.scroll_area)
         
         # 设置最小尺寸
-        self.setMinimumHeight(450)
-        self.setMinimumWidth(400)
+        self.setMinimumHeight(240)
+        self.setMinimumWidth(426)
         
         # 设置尺寸策略
         self.setSizePolicy(
