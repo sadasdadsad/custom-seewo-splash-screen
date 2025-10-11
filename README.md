@@ -126,6 +126,7 @@ custom-seewo-splash-screen/
 ├── ui/                          # 用户界面
 │   ├── __init__.py
 │   ├── main_window.py               # 主窗口
+│   ├── settings.py                  # 设置页面
 │   ├── controllers/                 # 控制器层
 │   │   ├── __init__.py
 │   │   ├── path_controller.py       # 路径管理控制器

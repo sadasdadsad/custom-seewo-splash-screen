@@ -1,20 +1,20 @@
 """主窗口 - 只负责UI组装和事件分发"""
 
-import os, webbrowser
-from PyQt6.QtWidgets import QVBoxLayout, QWidget, QLabel
+import os
+from PyQt6.QtWidgets import QVBoxLayout, QWidget
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import QTimer
-from qfluentwidgets import FluentWindow, FluentIcon as FIF, ProgressBar, Theme, setTheme, SettingCardGroup, SwitchSettingCard, PrimaryPushSettingCard
+from qfluentwidgets import FluentWindow, FluentIcon as FIF, ProgressBar, NavigationItemPosition
 
 from core.config_manager import ConfigManager
 from core.image_manager import ImageManager
 from core.replacer import ImageReplacer
-from core.app_info import get_version, get_app_name, get_repository
 from utils.admin_helper import is_admin
 
 from .widgets import PathInfoCard, ImageListWidget, ActionBar
 from .dialogs import MessageHelper
 from .controllers import PathController, ImageController, PermissionController
+from .settings import SettingsInterface
 
 
 class MainWindow(FluentWindow):
@@ -28,13 +28,9 @@ class MainWindow(FluentWindow):
         self._init_ui()
         self._init_settings_interface()
         self._connect_signals()
-
-        # 初始化配置管理器
-        self.config_manager = ConfigManager()
+        
         # 应用保存的主题设置
-        self._apply_saved_theme()
-        # 绑定设置卡片到配置
-        self._bind_settings_to_config()
+        self.settings_interface.apply_saved_theme()
         
         self.show()
         
@@ -50,7 +46,6 @@ class MainWindow(FluentWindow):
         self.setWindowIcon(QIcon(get_resource_path("assets/icon.ico")))
         self.resize(900, 650)
         self.center_window()
-        setTheme(Theme.AUTO)
     
     def _init_managers(self):
         """初始化管理器"""
@@ -65,7 +60,7 @@ class MainWindow(FluentWindow):
         self.permission_ctrl = PermissionController()
     
     def _init_ui(self):
-        """初始化UI"""
+        """初始化主界面UI"""
         self.homeInterface = QWidget()
         self.homeInterface.setObjectName("homeInterface")
         self.addSubInterface(self.homeInterface, FIF.HOME, '主页')
@@ -87,72 +82,11 @@ class MainWindow(FluentWindow):
     
     def _init_settings_interface(self):
         """初始化设置界面"""
-        # 创建设置界面 - 使用普通QWidget而不是ScrollArea以保持一致性
-        self.settingsInterface = QWidget()
-        self.settingsInterface.setObjectName("settingsInterface")
-        
-        # 创建布局
-        settingsLayout = QVBoxLayout(self.settingsInterface)
-        settingsLayout.setContentsMargins(20, 20, 20, 20)
-        settingsLayout.setSpacing(15)
-        
-        # 标题
-        titleLabel = QLabel("设置")
-        titleLabel.setStyleSheet("font-size: 28px; font-weight: bold;")
-        settingsLayout.addWidget(titleLabel)
-        
-        # 创建设置卡片组
-        self.appearanceGroup = SettingCardGroup("外观设置", self.settingsInterface)
-        
-        # 主题切换卡片 - 使用OptionsSettingCard
-        from qfluentwidgets import OptionsSettingCard, qconfig
-        self.themeCard = OptionsSettingCard(
-            qconfig.themeMode,
-            FIF.BRUSH,
-            "应用主题",
-            "调整你的应用外观",
-            texts=["浅色", "深色", "跟随系统设置"],
-            parent=self.appearanceGroup
-        )
-        self.themeCard.optionChanged.connect(self._on_theme_changed)
-        self.appearanceGroup.addSettingCard(self.themeCard)
-        
-        # 行为设置组
-        self.behaviorGroup = SettingCardGroup("行为设置", self.settingsInterface)
-        
-        # 自动检测路径卡片
-        self.autoDetectCard = SwitchSettingCard(
-            FIF.SEARCH,
-            "启动时自动检测路径",
-            "应用启动时自动检测希沃启动图片路径",
-            parent=self.behaviorGroup
-        )
-        self.behaviorGroup.addSettingCard(self.autoDetectCard)
-        
-        # 关于设置组
-        self.aboutGroup = SettingCardGroup("关于", self.settingsInterface)
-        
-        # 关于卡片
-        self.aboutCard = PrimaryPushSettingCard(
-            "访问项目",
-            FIF.LINK,  # 或者 FIF.GLOBE
-            f"关于 {get_app_name()}",
-            f"版本 {get_version()}",
-            self.aboutGroup
-        )
-        self.aboutCard.clicked.connect(self._on_about_clicked)
-        self.aboutGroup.addSettingCard(self.aboutCard)
-        
-        # 添加到布局
-        settingsLayout.addWidget(self.appearanceGroup)
-        settingsLayout.addWidget(self.behaviorGroup)
-        settingsLayout.addWidget(self.aboutGroup)
-        settingsLayout.addStretch(1)  # 添加弹性空间，让内容顶部对齐
+        self.settings_interface = SettingsInterface(self)
         
         # 添加到导航栏底部
-        from qfluentwidgets import NavigationItemPosition
         self.addSubInterface(
-            self.settingsInterface,
+            self.settings_interface,
             FIF.SETTING,
             '设置',
             position=NavigationItemPosition.BOTTOM
@@ -185,37 +119,6 @@ class MainWindow(FluentWindow):
         if is_admin():
             current_title = self.windowTitle()
             self.setWindowTitle(f"{current_title} [管理员]")
-    
-    # === 设置页面事件处理 ===
-    
-    def _on_theme_changed(self, item):
-        """主题切换事件"""
-        selected_theme = item.value
-        
-        # 根据主题值获取对应的名称和配置值
-        theme_config_map = {
-            Theme.LIGHT: ("浅色", "light"),
-            Theme.DARK: ("深色", "dark"), 
-            Theme.AUTO: ("跟随系统设置", "auto")
-        }
-        
-        theme_name, config_value = theme_config_map.get(selected_theme, ("未知", "auto"))
-        
-        # 应用主题
-        setTheme(selected_theme)
-        
-        # 保存到配置文件
-        self.config_manager.set_theme_mode(config_value)
-        
-        MessageHelper.show_success(
-            self,
-            f"已切换到{theme_name}模式",
-            2000
-        )
-    
-    def _on_about_clicked(self):
-        """关于按钮点击事件 - 跳转到GitHub"""
-        webbrowser.open(get_repository())
     
     # === 事件处理方法 (简洁的分发逻辑) ===
     
@@ -362,36 +265,6 @@ class MainWindow(FluentWindow):
             self.permission_ctrl.handle_permission_error(self, msg)
         else:
             MessageHelper.show_error(self, "还原失败", msg)
-
-    def _apply_saved_theme(self):
-        """应用保存的主题设置"""
-        theme_mode = self.config_manager.get_theme_mode()
-        theme_map = {
-            "light": Theme.LIGHT,
-            "dark": Theme.DARK,
-            "auto": Theme.AUTO
-        }
-        saved_theme = theme_map.get(theme_mode, Theme.AUTO)
-        setTheme(saved_theme)
-
-    def _bind_settings_to_config(self):
-        """绑定设置卡片到配置文件"""
-        # 绑定自动检测设置
-        auto_detect = self.config_manager.get_auto_detect_on_startup()
-        self.autoDetectCard.setChecked(auto_detect)
-        self.autoDetectCard.checkedChanged.connect(
-            self.config_manager.set_auto_detect_on_startup
-        )
-        
-        # 设置主题卡片的初始值
-        theme_mode = self.config_manager.get_theme_mode()
-        theme_index_map = {
-            "light": 0,
-            "dark": 1, 
-            "auto": 2
-        }
-        initial_index = theme_index_map.get(theme_mode, 2)
-        # 注意：这里可能需要根据OptionsSettingCard的具体API来设置初始值
     
     # === 辅助方法 ===
     
